@@ -25,7 +25,7 @@ export class Simulation {
 	readonly config: RunConfig;
 	readonly clock: SimulationClock;
 	readonly events: EventLog;
-	#store: RunStore | undefined;
+	readonly #store: RunStore | undefined;
 
 	constructor(params: {
 		runId: RunId;
@@ -35,6 +35,7 @@ export class Simulation {
 		config: RunConfig;
 		clock?: SimulationClock;
 		events?: EventLog;
+		store?: RunStore;
 	}) {
 		this.runId = params.runId;
 		this.room = params.room;
@@ -43,20 +44,23 @@ export class Simulation {
 		this.config = params.config;
 		this.clock = params.clock ?? new SimulationClock();
 		this.events = params.events ?? new EventLog();
+		this.#store = params.store;
 	}
 
-	#append(event: AnyEvent): void {
-		this.events.append(event);
-		this.#store?.appendEvent(this.runId, event);
+	/** Persists a batch atomically, then makes it visible in the in-memory log. */
+	#commit(events: readonly AnyEvent[]): void {
+		this.#store?.appendEvents(this.runId, events);
+		this.events.extend(events);
 	}
 
-	setup(store: RunStore): void {
-		this.#store = store;
+	/** Agents join the room. Only for a new run; use `restore` to resume one. */
+	setup(): void {
+		const joined: AnyEvent[] = [];
 
 		for (const agent of this.agents) {
 			this.room.add(agent.id);
 
-			this.#append(
+			joined.push(
 				agentJoinedSchema.parse({
 					id: newEventId(),
 					timestamp: this.clock.now,
@@ -67,31 +71,64 @@ export class Simulation {
 				}),
 			);
 		}
+
+		this.#commit(joined);
+	}
+
+	/** Rebuilds in-memory state from the events already stored for this run. */
+	restore(events: readonly AnyEvent[]): void {
+		let lastStep = 0;
+
+		for (const event of events) {
+			if (event.type === "agent.joined") {
+				this.room.add(event.agentId);
+			}
+			lastStep = Math.max(lastStep, event.step);
+		}
+
+		this.events.extend(events);
+		this.clock.seek(lastStep);
 	}
 
 	exportEvents(path: string): void {
 		this.events.writeJsonl(path);
 	}
 
-	async step(): Promise<AnyEvent | undefined> {
+	/**
+	 * Runs one step and returns the events it produced. A step is atomic: its
+	 * events are persisted together once every agent has answered, and if any
+	 * agent fails nothing is recorded and the clock does not advance.
+	 */
+	async step(): Promise<AnyEvent[]> {
 		this.clock.advance();
 
+		try {
+			return await this.#runStep();
+		} catch (error) {
+			this.clock.rewind();
+			throw error;
+		}
+	}
+
+	async #runStep(): Promise<AnyEvent[]> {
+		const stepEvents: AnyEvent[] = [];
 		const candidates: Candidate[] = [];
-		let lastEvent: AnyEvent | undefined;
+
+		// Agents propose simultaneously: all of them observe the history as it
+		// was at the start of the step, never each other's proposals.
+		const history = this.events.toList();
 
 		for (const agent of this.agents) {
-			const roomView = this.room.view(agent.id, this.events.toList());
-
 			const observation = agent.observe({
 				step: this.clock.step,
 				time: this.clock.now,
-				room: roomView,
+				room: this.room.view(agent.id, history),
 			});
 
 			const proposal = await agent.propose(observation);
 
 			if (proposal.prompt !== undefined) {
-				this.#append(
+				stepEvents.push(
 					agentPromptBuiltSchema.parse({
 						id: newEventId(),
 						timestamp: this.clock.now,
@@ -103,17 +140,16 @@ export class Simulation {
 				);
 			}
 
-			const event = actionProposedSchema.parse({
-				id: newEventId(),
-				timestamp: this.clock.now,
-				step: this.clock.step,
-				agentId: agent.id,
-				action: proposal.action,
-				type: "action.proposed",
-			});
-
-			this.#append(event);
-			lastEvent = event;
+			stepEvents.push(
+				actionProposedSchema.parse({
+					id: newEventId(),
+					timestamp: this.clock.now,
+					step: this.clock.step,
+					agentId: agent.id,
+					action: proposal.action,
+					type: "action.proposed",
+				}),
+			);
 
 			if (proposal.action.type === "speak") {
 				candidates.push(
@@ -126,40 +162,41 @@ export class Simulation {
 		}
 
 		if (candidates.length > 0) {
-			const selected = this.scheduler.select(candidates, this.config.rng);
+			const selected = this.scheduler.select(
+				candidates,
+				this.config.rngForStep(this.clock.step),
+			);
 
-			const selectedEvent = actionSelectedSchema.parse({
-				id: newEventId(),
-				timestamp: this.clock.now,
-				step: this.clock.step,
-				agentId: selected.agentId,
-				action: selected.action,
-				type: "action.selected",
-			});
-
-			// Matches the source simulation: selection/publication events are kept
-			// in-memory only, not persisted through the store.
-			this.events.append(selectedEvent);
-			lastEvent = selectedEvent;
+			stepEvents.push(
+				actionSelectedSchema.parse({
+					id: newEventId(),
+					timestamp: this.clock.now,
+					step: this.clock.step,
+					agentId: selected.agentId,
+					action: selected.action,
+					type: "action.selected",
+				}),
+			);
 
 			const selectedAction = speakSchema.safeParse(selected.action);
 
 			if (selectedAction.success) {
-				const published = messagePublishedSchema.parse({
-					id: newEventId(),
-					timestamp: this.clock.now,
-					step: this.clock.step,
-					agentId: selectedAction.data.agentId,
-					roomId: selectedAction.data.roomId,
-					content: selectedAction.data.content,
-					type: "message.published",
-				});
-
-				this.events.append(published);
-				lastEvent = published;
+				stepEvents.push(
+					messagePublishedSchema.parse({
+						id: newEventId(),
+						timestamp: this.clock.now,
+						step: this.clock.step,
+						agentId: selectedAction.data.agentId,
+						roomId: selectedAction.data.roomId,
+						content: selectedAction.data.content,
+						type: "message.published",
+					}),
+				);
 			}
 		}
 
-		return lastEvent;
+		this.#commit(stepEvents);
+
+		return stepEvents;
 	}
 }

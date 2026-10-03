@@ -1,2 +1,2 @@
-export { buildRun } from "./factory";
-export { createRun } from "./runner";
+export { buildRun, loadSimulation } from "./factory";
+export { createRun, stepRun } from "./runner";

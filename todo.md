@@ -33,34 +33,34 @@ Gaps this plan closes:
 
 ### Decisions
 
-- **D1. Where does simulation state live between requests?** Recommended: rebuild the `Simulation` from the database on every step (stateless API, survives restarts, enables forking a run from a step later). This requires the seeded rng to be derivable from `(seed, step)` instead of consumed sequentially, so a resumed run matches a continuous one. Existing dev runs lose reproducibility; acceptable. Alternative: keep live simulations in an API-process map (simpler, lost on restart).
-- **D2. Failure semantics of a step.** Recommended: a step is atomic. Events are buffered and written in one transaction at the end; if any agent fails (for example an LLM error), nothing is written, the run keeps its status, and the user can retry. Alternative: persist events as they happen and accept half-written steps.
-- **D3. Tests.** No test runner exists. Recommended: add Vitest to `packages/engine` for the stepping logic (key test: a run rebuilt between every step equals a continuous run). Otherwise verification is manual via curl and the UI.
+- **D1. Where does simulation state live between requests?** Decided: rebuild the `Simulation` from the database on every step (stateless API, survives restarts, enables forking a run from a step later). This requires the seeded rng to be derivable from `(seed, step)` instead of consumed sequentially, so a resumed run matches a continuous one. Existing dev runs lose reproducibility; acceptable. Alternative: keep live simulations in an API-process map (simpler, lost on restart).
+- **D2. Failure semantics of a step.** Decided: a step is atomic. Events are buffered and written in one transaction at the end; if any agent fails (for example an LLM error), nothing is written, the run keeps its status, and the user can retry. Alternative: persist events as they happen and accept half-written steps.
+- **D3. Tests.** Decided: add Vitest to `packages/engine` for the stepping logic (key test: a run rebuilt between every step equals a continuous run). Otherwise verification is manual via curl and the UI.
 
 ### Phase A — Engine (`packages/engine`, `packages/db`)
 
-- [ ] **A1. Persist every event of a step atomically** `(needs decision D2)`
+- [x] **A1. Persist every event of a step atomically**
   Make `Simulation.step()` collect all of its events (`agent.prompt_built`, `action.proposed`, `action.selected`, `message.published`) and write them through one transactional `RunStore.appendEvents`. Remove the in-memory-only branch and its comment.
   Files: `engine/src/simulation.ts`, `db/src/runStore.ts`.
   Verify: after one step, `listEvents` contains `action.selected` and `message.published`; a step that throws leaves the event count unchanged.
 
-- [ ] **A2. Rebuild a simulation from the database** `(needs decision D1)`
+- [x] **A2. Rebuild a simulation from the database**
   Add `loadSimulation(store, runId)` next to `buildRun`. `buildRun` must accept an existing `runId`. Restore room membership without re-emitting `agent.joined`, the `EventLog` from stored events, and the clock at the last stored step. Derive the step's rng from `(seed, step)` (for example `SeededRandom.forStep`).
   Files: `engine/src/scenario/factory.ts`, new `engine/src/scenario/loader.ts` (or similar), `engine/src/rng.ts`, `engine/src/runConfig.ts`.
   Verify: for a `weighted_random` scenario, stepping with a rebuild before each step gives the same events (ignoring ids) as stepping one live simulation.
 
-- [ ] **A3. `stepRun` use case**
+- [x] **A3. `stepRun` use case**
   `stepRun(store, runId)` in `engine/src/scenario/runner.ts`: load the run, reject if `completed`, set `running` on the first step, execute one step, mark `completed` when the clock reaches `scenario.steps`, and return `{ run, events }` (only the new events, as `EventRecord[]`). The API must call this and contain no stepping logic.
   Verify: a scenario with `steps: 2` goes `created → running → completed`; a third call fails with a typed error the API can map to 409.
 
-- [ ] **A4. One step at a time per run**
+- [x] **A4. One step at a time per run**
   Reject a second concurrent `stepRun` for the same run (in-process lock keyed by `runId`, released in `finally`). LLM steps can take seconds, so double clicks are realistic.
   Verify: two simultaneous calls on one run: one succeeds, the other fails fast with the same typed "busy" error.
 
 ### Phase B — API (`apps/api`, `packages/types`)
 
 - [ ] **B1. Share one `RunStore` and fix error handling**
-  Create the store once (Fastify decorator or plugin, closed on shutdown) instead of per request. Return 404 for an unknown run on `GET /runs/:id` and `GET /runs/:id/events`.
+  Create the store once (Fastify decorator or plugin, closed on shutdown) instead of per request. `createRun` still opens its own store from a `dbPath`; change it to take the shared store. Return 404 for an unknown run on `GET /runs/:id` and `GET /runs/:id/events`.
   Files: `api/src/routes/runs.ts`, `api/src/plugins/`, `api/src/paths.ts`.
   Verify: `curl` on a random uuid returns 404; no new `RunStore` per request in the code.
 
@@ -87,7 +87,7 @@ Gaps this plan closes:
 ### Phase D — Docs and wrap-up
 
 - [ ] **D1. Update documentation**
-  `docs/agent/engine.md` (persistence table: all events persisted, flow now includes `loadSimulation` and `stepRun`), `docs/agent/api-ui.md` and `AGENT.md` (new route, client state in the viewer), `design.md` sections 7 and 9, `roadmap.md` axis 1 status. If D3 was accepted, document the test command in `AGENT.md` and drop the "no test runner" paragraph.
+  `docs/agent/api-ui.md` and `AGENT.md` (new route, client state in the viewer), `design.md` sections 7 and 9 (stepping, run status), `roadmap.md` axis 1 status. Engine docs, the Testing section of `AGENT.md` and the reproducibility notes were already updated in phase A.
 
 ### Done when
 

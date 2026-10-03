@@ -8,13 +8,15 @@
 	},
 	"scripts": {
 		"lint": "biome check",
-		"check-types": "tsc --noEmit"
+		"check-types": "tsc --noEmit",
+		"test": "vitest run"
 	},
 	"devDependencies": {
 		"@experiments/biome-config": "workspace:^",
 		"@experiments/typescript-config": "workspace:*",
 		"@types/node": "26.5.0",
-		"typescript": "7.0.2"
+		"typescript": "7.0.2",
+		"vitest": "^5.0.3"
 	},
 	"dependencies": {
 		"@experiments/db": "workspace:*",

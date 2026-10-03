@@ -34,7 +34,7 @@ pnpm dev           # api (tsx watch, :8080) + ui (next dev, :3000)
 pnpm lint          # biome check
 pnpm format        # biome check --write
 pnpm check-types   # turbo: tsc --noEmit in every package (ui runs next typegen first)
-pnpm test          # turbo test
+pnpm test          # turbo test (Vitest in packages/engine)
 ```
 
 API docs are served at `/reference` (Scalar); health probes are under `/healthz`.
@@ -75,7 +75,7 @@ These are behavioral contracts. Do not break them without being asked to.
 - **Time advances every step, even when nobody speaks.** Silence is a simulation state. Never skip or collapse silent steps.
 - Simulation time (`SimulationClock`) and wall-clock time are separate. Wall-clock time must never influence behavior.
 - Events are immutable facts with an explicit `type`; actions are discriminated by an explicit `type` too. Never infer a type from payload shape. Build events through their Zod schema (`xxxSchema.parse`).
-- Reproducibility: same scenario + seed → same trajectory. All randomness goes through `RunConfig.rng` (`SeededRandom`); never use `Math.random()`. `runId` and event `id` are execution-specific, so compare normalized behavior rather than raw artifacts.
+- Reproducibility: same scenario + seed → same trajectory. All randomness goes through `RunConfig.rngForStep(step)` (`SeededRandom`, derived from seed and step); never use `Math.random()`. `runId` and event `id` are execution-specific, so compare normalized behavior rather than raw artifacts.
 - Agents never see the whole world. They get an `Observation` containing a `RoomView`; visibility rules live in `Room.view`.
 
 Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/agent/engine.md).
@@ -92,7 +92,7 @@ Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/a
 
 ## Testing
 
-No test runner is configured yet, so `pnpm test` is currently a no-op. When changing simulation behavior, cover the contract (silent steps, time advancement, fixed-seed reproducibility, scheduler selection, run persistence) with focused tests. If you introduce the first runner, add a `test` script to the package (Turbo already defines the task) and tell the user which runner you picked.
+Vitest runs in `packages/engine` (`pnpm --filter @experiments/engine test`); tests sit next to the code as `*.test.ts` and use a temporary SQLite file, never real LLM calls. When changing simulation behavior, cover the contract (silent steps, time advancement, fixed-seed reproducibility, scheduler selection, run persistence). Other packages have no runner yet: add a `test` script there when you write their first test.
 
 ## Where to look
 

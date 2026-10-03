@@ -94,7 +94,7 @@ A run is stored in SQLite (`DB_PATH`) through `RunStore`: a `runs` table (id, na
 
 ## 10. Reproducibility
 
-Scenario configuration + seed produce the same trajectory. All randomness goes through a seeded PRNG (`SeededRandom`, mulberry32) held by `RunConfig`. `runId` and event ids are execution-specific and excluded from behavioral comparison. Real LLM calls may introduce provider-side non-determinism; the deterministic engine stays testable on its own.
+Scenario configuration + seed produce the same trajectory. All randomness goes through a seeded PRNG (`SeededRandom`, mulberry32). `RunConfig` derives the stream for each step from the seed and the step number, so a run gives the same trajectory whether it executes continuously or is rebuilt from storage between steps. `runId` and event ids are execution-specific and excluded from behavioral comparison. Real LLM calls may introduce provider-side non-determinism; the deterministic engine stays testable on its own.
 
 ## 11. API
 

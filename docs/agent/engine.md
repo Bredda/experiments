@@ -6,37 +6,39 @@ Code: `packages/engine/src`, schemas in `packages/types/src`, persistence in `pa
 
 ```text
 POST /runs body ──scenarioConfigSchema.parse──▶ ScenarioConfig
-ScenarioConfig ──buildRun──▶ Simulation (Room, Agents, Scheduler, RunConfig)
-createRun: store.createRun(...) then simulation.setup(store)
+createRun:  buildRun ─▶ store.createRun ─▶ simulation.setup()          (agents join)
+stepRun:    loadSimulation(store, runId) ─▶ simulation.step() ─▶ status update
 ```
 
-`createRun` (`scenario/runner.ts`) persists the run and runs `setup()` (agents join the room, `agent.joined` events). It does not step the simulation. The engine currently supports exactly one room per scenario even though the schema allows several.
+`createRun` (`scenario/runner.ts`) persists the run and runs `setup()`; it does not step. `stepRun(store, runId)` advances one step and returns the updated run plus only the events that step added. It keeps no state between calls: `loadSimulation` rebuilds the simulation from the stored scenario and events (`Simulation.restore` re-joins agents, refills the event log, seeks the clock). Typed errors (`RunNotFoundError`, `RunCompletedError`, `RunBusyError`) are exported for adapters to map to HTTP codes. The engine currently supports exactly one room per scenario even though the schema allows several.
 
-Run status is `created | running | completed` (`runStatusSchema`).
+Run status is `created | running | completed` (`runStatusSchema`). `stepRun` sets `running` after the first step and `completed` once the clock reaches `scenario.steps`; one step at a time per run is enforced in-process.
 
 ## Simulation.step()
 
-`step()` is async because agents may call out to an LLM.
+`step()` is async because agents may call out to an LLM, and it is **atomic**: all events are persisted in one transaction at the end, and if any agent throws nothing is recorded and the clock is rewound.
 
 1. `clock.advance()`. Always, even if nothing happens afterwards.
-2. For each agent: `room.view` → `agent.observe` → `await agent.propose`.
+2. All agents observe the history as of the start of the step (never each other's same-step proposals), then `await agent.propose`.
 3. If the proposal carries a `prompt`, emit `agent.prompt_built`. Always emit `action.proposed`.
 4. Only `speak` proposals become scheduler candidates. `stay_silent` is recorded but never selected.
 5. If there are candidates, `scheduler.select(candidates, rng)` picks one, then `action.selected` and `message.published` are emitted.
+
+Randomness is `config.rngForStep(step)`, derived from `(seed, step)`, so a step gives the same result whether the simulation ran continuously or was rebuilt just before it.
 
 ## Events
 
 All events share `id`, `timestamp` (simulation time, ISO), `step`, and a literal `type`. The union is `anyEventSchema` in `packages/types/src/events.ts`.
 
-| type | Emitted when | Persisted to RunStore |
-| --- | --- | --- |
-| `agent.joined` | `setup()` | yes |
-| `agent.prompt_built` | an agent returns a prompt (LLM agents) | yes |
-| `action.proposed` | every agent, every step | yes |
-| `action.selected` | the scheduler picks a candidate | no, in-memory `EventLog` only |
-| `message.published` | the selected action is `speak` | no, in-memory `EventLog` only |
+| type | Emitted when |
+| --- | --- |
+| `agent.joined` | `setup()` |
+| `agent.prompt_built` | an agent returns a prompt (LLM agents) |
+| `action.proposed` | every agent, every step |
+| `action.selected` | the scheduler picks a candidate |
+| `message.published` | the selected action is `speak` |
 
-The last two rows reflect `Simulation.step()` today (see the comment there). Check before relying on them being queryable from the DB or API.
+Every event is persisted to the `RunStore`.
 
 Actions (`packages/types/src/actions.ts`): `speak` (with `urgency`, `relevance`, `socialCost`) and `stay_silent`, discriminated by `type`. An `ActionProposal` wraps an action with `confidence` and an optional `prompt`.
 
@@ -58,4 +60,4 @@ A scenario is a `ScenarioConfig` (`scenarioConfigSchema`, strict: unknown keys a
 
 `RunStore` (SQLite at `DB_PATH`, default `./simulation.db`) has three tables: `runs`, `scenarios` (scenario JSON per run), `events` (append-only, `payload_json` holds the full event). Event rows get an autoincrement `id`; `listEvents(runId, sinceId)` supports incremental reads.
 
-`EventLog` is the in-memory log used to build room views. It can still dump JSONL via `exportEvents`, but JSONL files are no longer the run artifact.
+`appendEvents` is transactional. `EventLog` is the in-memory log used to build room views and is only extended after a successful write. It can still dump JSONL via `exportEvents`, but JSONL files are no longer the run artifact.

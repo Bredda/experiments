@@ -35,7 +35,7 @@ The MVP does not need sophisticated emergent behavior. It needs to prove that co
 
 **Goal:** create, execute and follow a run entirely from the UI and API.
 
-Runs are created from a scenario built in the UI, persisted in SQLite, and advanced one step at a time from the run page; status moves from created to completed. Autoplay (play/pause) is a client loop over the same step call. Measured with three `claude-haiku-4-5` agents (about 7 to 10 seconds per step, growing with memory), the cost is that agents are called one after another, not the absence of streaming. Proposing in parallel is now possible, since agents observe the history as of the start of the step, and would bring a step close to its slowest single call (about 3 seconds). Streaming inside a step stays on hold until that is done.
+Runs are created from a scenario built in the UI, persisted in SQLite, and advanced one step at a time from the run page; status moves from created to completed. Autoplay (play/pause) is a client loop over the same step call. Agents now propose concurrently within a step: with three `claude-haiku-4-5` agents a step went from about 7 to 10 seconds to about 3 seconds. Streaming inside a step stays on hold until that proves too slow.
 
 **Done when:** a user can launch a run, advance it to completion and watch it unfold without leaving the UI.
 
@@ -83,7 +83,7 @@ Two baseline policies exist. Next steps are further baselines and policy-based s
 
 **Goal:** make runs directly comparable.
 
-First comparison: same scenario, agents and seed with scheduler A versus scheduler B, shown side by side. Then derived trajectory metrics (participation balance, silence duration, response latency) and data export. Deeper observability (traces, token and cost metrics, event-to-trace correlation) comes later and observes the engine without defining it.
+First comparison: same scenario, agents and seed with scheduler A versus scheduler B, shown side by side. Then derived trajectory metrics (participation balance, silence duration, response latency) and data export. Deeper observability (traces, token and cost metrics, event-to-trace correlation) comes later and observes the engine without defining it. When run cost is surfaced, count the model calls of failed steps too: a step that fails leaves no events, but the calls of the agents that had already answered (or were still in flight) were billed.
 
 **Done when:** a changed parameter can be isolated and its impact evaluated across runs.
 

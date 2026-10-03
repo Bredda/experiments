@@ -19,7 +19,7 @@ Run status is `created | running | completed` (`runStatusSchema`). `stepRun` set
 `step()` is async because agents may call out to an LLM, and it is **atomic**: all events are persisted in one transaction at the end, and if any agent throws nothing is recorded and the clock is rewound.
 
 1. `clock.advance()`. Always, even if nothing happens afterwards.
-2. All agents observe the history as of the start of the step (never each other's same-step proposals), then `await agent.propose`.
+2. All agents observe the history as of the start of the step (never each other's same-step proposals) and their `propose` calls run concurrently (`Promise.allSettled`). Calls already in flight are not cancelled when one fails: the step waits for all of them, throws the first failure in agent order, and records nothing. Events are then built in agent order, so the log does not depend on which call finished first.
 3. If the proposal carries a `prompt`, emit `agent.prompt_built`. Always emit `action.proposed`.
 4. Only `speak` proposals become scheduler candidates. `stay_silent` is recorded but never selected.
 5. If there are candidates, `scheduler.select(candidates, rng)` picks one, then `action.selected` and `message.published` are emitted.

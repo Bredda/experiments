@@ -236,4 +236,115 @@ describe("Simulation.step", () => {
 
 		expect(seen).toEqual([0, 0]);
 	});
+
+	describe("proposals", () => {
+		/** An agent whose answer is released by the test. */
+		class GatedAgent extends Agent {
+			started = false;
+			#release!: (outcome: "speak" | Error) => void;
+			readonly #gate = new Promise<"speak" | Error>((resolve) => {
+				this.#release = resolve;
+			});
+
+			release(outcome: "speak" | Error = "speak") {
+				this.#release(outcome);
+			}
+
+			async propose(): Promise<ActionProposal> {
+				this.started = true;
+				const outcome = await this.#gate;
+				if (outcome instanceof Error) throw outcome;
+				return actionProposal({
+					action: speak({
+						agentId: this.id,
+						roomId: this.roomId,
+						content: this.name,
+					}),
+				});
+			}
+		}
+
+		const tick = () => new Promise((resolve) => setImmediate(resolve));
+
+		function setupGated(count: number) {
+			const runId = "33333333-3333-4333-8333-333333333333" as RunId;
+			store.createRun({
+				runId,
+				name: "gated",
+				seed: "ABC123",
+				scenario: scenario(),
+			});
+
+			const room = new Room({ id: "main" as never, name: "main" });
+			const agents = Array.from(
+				{ length: count },
+				(_, i) => new GatedAgent(`agent${i}` as never, `agent${i}`, room.id),
+			);
+			const simulation = new Simulation({
+				runId,
+				room,
+				agents,
+				scheduler: new HighestUrgencyScheduler(),
+				config: new RunConfig({ runId, seed: "ABC123" }),
+				store,
+			});
+			simulation.setup();
+
+			return { runId, agents, simulation };
+		}
+
+		it("calls every agent before any of them has answered", async () => {
+			const { agents, simulation } = setupGated(3);
+
+			const step = simulation.step();
+			await tick();
+
+			expect(agents.map((agent) => agent.started)).toEqual([true, true, true]);
+
+			for (const agent of agents) agent.release();
+			await step;
+		});
+
+		it("records proposals in agent order whatever the order they finish in", async () => {
+			const { agents, simulation } = setupGated(3);
+
+			const step = simulation.step();
+			await tick();
+			// The last agent answers first, the first one answers last.
+			for (const agent of [...agents].reverse()) agent.release();
+			const events = await step;
+
+			expect(
+				events
+					.filter((event) => event.type === "action.proposed")
+					.map((event) => event.agentId),
+			).toEqual(["agent0", "agent1", "agent2"]);
+		});
+
+		it("waits for the calls in flight before failing, and records nothing", async () => {
+			const { runId, agents, simulation } = setupGated(2);
+			const stored = store.listEvents(runId).length;
+
+			let settled = false;
+			const step = simulation.step().then(
+				() => "resolved",
+				(error: Error) => {
+					settled = true;
+					return error.message;
+				},
+			);
+			await tick();
+
+			agents[1]?.release(new Error("model unavailable"));
+			await tick();
+			// The failure is known, but the first agent is still answering.
+			expect(settled).toBe(false);
+
+			agents[0]?.release();
+			expect(await step).toBe("model unavailable");
+
+			expect(store.listEvents(runId)).toHaveLength(stored);
+			expect(simulation.clock.step).toBe(0);
+		});
+	});
 });

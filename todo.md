@@ -15,7 +15,7 @@ Working plan for the feature in progress, and the backlog. Strategy and horizons
 
 ## Current plan
 
-None. The run page redesign and autoplay are delivered. Next candidate: proposing agents in parallel within a step (see the backlog), to be discussed first.
+None. The run page redesign and autoplay are delivered. Agents now propose in parallel within a step. Next candidates: the time cursor (roadmap axis 2) and per-run cost (axis 7).
 
 A plan in this file has: a goal, a short "where we are", **Decisions** (each with a recommendation, confirmed by the user before the tasks that depend on it), tasks grouped in phases (one commit per phase), each task with the files it touches and a **Verify** line, and a "Done when" block.
 
@@ -25,7 +25,6 @@ A plan in this file has: a goal, a short "where we are", **Decisions** (each wit
 
 Unscheduled, not part of the current plan.
 
-- Run agents' proposals in parallel within a step (`Simulation.#runStep`): a step with LLM agents takes about 7 to 10 seconds because agents are called one after another. Results must be collected in agent order so event order stays deterministic. To discuss before starting.
 - Test the `llm` agent prompt without calling the model (`packages/ai` has no test runner); the two-system-message bug fixed in phase E would have been caught by one.
 - Rewrite the event log viewer (`components/run/events.tsx`, `event-panel.tsx`): clearer step grouping, readable labels for every event type.
 - Remove startup `console.log` calls in `apps/api/src/paths.ts` and `apps/api/src/plugins/cors.ts` in favor of the Fastify logger.

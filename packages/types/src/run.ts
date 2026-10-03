@@ -26,3 +26,10 @@ export const eventRecordSchema = z.object({
 	timestamp: timeSchema,
 });
 export type EventRecord = z.infer<typeof eventRecordSchema>;
+
+/** Outcome of advancing a run by one step: the run as it is now, and what the step added. */
+export const stepResultSchema = z.object({
+	run: runRecordSchema,
+	events: z.array(eventRecordSchema),
+});
+export type StepResult = z.infer<typeof stepResultSchema>;

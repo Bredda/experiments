@@ -49,9 +49,12 @@ export class LLMAgent extends Agent {
 	}
 
 	async propose(observation: Observation): Promise<ActionProposal> {
+		// Anthropic accepts a single system message, and only as the first one:
+		// the persona and the memory are sent together.
+		const base = this.#buildBasePrompt();
+		const history = this.#buildHistory(observation);
 		const prompt: Prompt = [
-			this.#buildBasePrompt(),
-			this.#buildHistory(observation),
+			{ role: "system", content: `${base.content}\n${history.content}` },
 			{ role: "user", content: "Propose your next action." },
 		];
 

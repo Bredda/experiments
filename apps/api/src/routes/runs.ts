@@ -1,11 +1,22 @@
-import { RunStore } from "@experiments/db";
-import { createRun } from "@experiments/engine";
+import { createRun, stepRun } from "@experiments/engine";
 import { runIdSchema } from "@experiments/types/ids";
-import { eventRecordSchema, runRecordSchema } from "@experiments/types/run";
+import {
+	eventRecordSchema,
+	runRecordSchema,
+	stepResultSchema,
+} from "@experiments/types/run";
 import { scenarioConfigSchema } from "@experiments/types/scenario";
 import type { FastifyPluginAsync } from "fastify";
 import z from "zod";
-import { resolvedDbPath } from "../paths.ts";
+
+const errorResponse = {
+	type: "object",
+	properties: { error: { type: "string" } },
+} as const;
+
+const idParams = z
+	.object({ id: runIdSchema })
+	.toJSONSchema({ target: "draft-7" });
 
 const runsRoutes: FastifyPluginAsync = async (app) => {
 	app.get(
@@ -19,10 +30,8 @@ const runsRoutes: FastifyPluginAsync = async (app) => {
 				},
 			},
 		},
-		async (request, reply) => {
-			const store = new RunStore(resolvedDbPath);
-			const runs = await store.listRuns();
-			return reply.code(200).send(runs);
+		async (_request, reply) => {
+			return reply.code(200).send(app.store.listRuns());
 		},
 	);
 
@@ -40,7 +49,7 @@ const runsRoutes: FastifyPluginAsync = async (app) => {
 		},
 		async (request, reply) => {
 			const scenario = scenarioConfigSchema.parse(request.body);
-			const run = createRun(scenario, { dbPath: resolvedDbPath });
+			const run = createRun(app.store, scenario);
 			return reply.code(201).send(run);
 		},
 	);
@@ -51,34 +60,65 @@ const runsRoutes: FastifyPluginAsync = async (app) => {
 			schema: {
 				description: "Fetch a given Run by its id",
 				tags: ["runs"],
+				params: idParams,
 				response: {
 					200: runRecordSchema.toJSONSchema(),
+					404: errorResponse,
 				},
 			},
 		},
 		async (request, reply) => {
-			const { id } = request.params;
-			const store = new RunStore(resolvedDbPath);
-			const run = await store.getRun(runIdSchema.parse(id));
+			const run = app.store.getRun(runIdSchema.parse(request.params.id));
+			if (run === undefined) {
+				throw app.httpErrors.notFound(`Run ${request.params.id} not found`);
+			}
 			return reply.code(200).send(run);
 		},
 	);
+
 	app.get<{ Params: { id: string } }>(
 		"/:id/events",
 		{
 			schema: {
 				description: "Fetch all events from a given Run by its id",
 				tags: ["runs"],
+				params: idParams,
 				response: {
 					200: z.array(eventRecordSchema).toJSONSchema(),
+					404: errorResponse,
 				},
 			},
 		},
 		async (request, reply) => {
-			const { id } = request.params;
-			const store = new RunStore(resolvedDbPath);
-			const events = await store.listEvents(runIdSchema.parse(id));
-			return reply.code(200).send(events);
+			const runId = runIdSchema.parse(request.params.id);
+			if (app.store.getRun(runId) === undefined) {
+				throw app.httpErrors.notFound(`Run ${runId} not found`);
+			}
+			return reply.code(200).send(app.store.listEvents(runId));
+		},
+	);
+
+	app.post<{ Params: { id: string } }>(
+		"/:id/steps/next",
+		{
+			schema: {
+				description:
+					"Advance a run by one step. Returns the updated run and only the events this step added. 409 if the run is completed or already executing a step.",
+				tags: ["runs"],
+				params: idParams,
+				response: {
+					200: stepResultSchema.toJSONSchema(),
+					404: errorResponse,
+					409: errorResponse,
+				},
+			},
+		},
+		async (request, reply) => {
+			const result = await stepRun(
+				app.store,
+				runIdSchema.parse(request.params.id),
+			);
+			return reply.code(200).send(result);
 		},
 	);
 };

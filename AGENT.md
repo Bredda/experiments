@@ -34,7 +34,7 @@ pnpm dev           # api (tsx watch, :8080) + ui (next dev, :3000)
 pnpm lint          # biome check
 pnpm format        # biome check --write
 pnpm check-types   # turbo: tsc --noEmit in every package (ui runs next typegen first)
-pnpm test          # turbo test
+pnpm test          # turbo test (Vitest in packages/engine and apps/ui)
 ```
 
 API docs are served at `/reference` (Scalar); health probes are under `/healthz`.
@@ -53,7 +53,7 @@ Allowed imports between workspaces:
 apps/api        → engine, ai, db, settings, types
 apps/ui         → settings, types   (reaches the API over HTTP only)
 packages/ai     → engine, settings, types
-packages/engine → db, settings, types
+packages/engine → db, types
 packages/db     → types
 packages/types  → (Zod only)
 ```
@@ -75,7 +75,7 @@ These are behavioral contracts. Do not break them without being asked to.
 - **Time advances every step, even when nobody speaks.** Silence is a simulation state. Never skip or collapse silent steps.
 - Simulation time (`SimulationClock`) and wall-clock time are separate. Wall-clock time must never influence behavior.
 - Events are immutable facts with an explicit `type`; actions are discriminated by an explicit `type` too. Never infer a type from payload shape. Build events through their Zod schema (`xxxSchema.parse`).
-- Reproducibility: same scenario + seed → same trajectory. All randomness goes through `RunConfig.rng` (`SeededRandom`); never use `Math.random()`. `runId` and event `id` are execution-specific, so compare normalized behavior rather than raw artifacts.
+- Reproducibility: same scenario + seed → same trajectory. All randomness goes through `RunConfig.rngForStep(step)` (`SeededRandom`, derived from seed and step); never use `Math.random()`. `runId` and event `id` are execution-specific, so compare normalized behavior rather than raw artifacts.
 - Agents never see the whole world. They get an `Observation` containing a `RoomView`; visibility rules live in `Room.view`.
 
 Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/agent/engine.md).
@@ -85,14 +85,14 @@ Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/a
 - Match the surrounding code. Fields are camelCase everywhere (`agentId`, `runId`).
 - IDs are branded (`AgentId`, `RoomId`, `RunId`, `EventId`). Agent and room IDs come from scenario files and are opaque strings; run and event IDs are UUIDs.
 - Closed sets (agent behaviors, memory kinds, scheduler types) are declared as Zod enums in `packages/types`, and the engine registries must cover them exactly. Adding a member touches both sides; see the `add-engine-component` skill.
-- Server and engine code read configuration through `env` from `@experiments/settings`, not `process.env`.
+- Server code (`apps/api`, `packages/ai`) reads configuration through `env` from `@experiments/settings`, not `process.env`.
 - Prefer the smallest change that solves the task. Do not add dependencies or infrastructure without a concrete need.
 - Keep deterministic components testable offline: use fakes instead of real LLM calls.
 - Surface genuine design ambiguity instead of silently introducing a framework-level abstraction.
 
 ## Testing
 
-No test runner is configured yet, so `pnpm test` is currently a no-op. When changing simulation behavior, cover the contract (silent steps, time advancement, fixed-seed reproducibility, scheduler selection, run persistence) with focused tests. If you introduce the first runner, add a `test` script to the package (Turbo already defines the task) and tell the user which runner you picked.
+Vitest runs in `packages/engine` (`pnpm --filter @experiments/engine test`) and `apps/ui` (`pnpm --filter ui test`); tests sit next to the code as `*.test.ts` and use a temporary SQLite file, never real LLM calls. When changing simulation behavior, cover the contract (silent steps, time advancement, fixed-seed reproducibility, scheduler selection, run persistence). In `apps/ui`, Vitest covers only pure view logic in `lib/` (node environment, no DOM or component tests). Other packages have no runner yet: add a `test` script there when you write their first test.
 
 ## Where to look
 
@@ -103,6 +103,7 @@ No test runner is configured yet, so `pnpm test` is currently a no-op. When chan
 | Adding a behavior, scheduler or memory | skill `add-engine-component` |
 | Adding an event type | skill `add-event-type` |
 | Overall design | [design.md](design.md) |
+| Current task breakdown (follow it when implementing) | [todo.md](todo.md) |
 | Planned work and ideas | [roadmap.md](roadmap.md) |
 
 `roadmap.md` is the only place for planned work and ideas. Do not implement roadmap items unless asked.

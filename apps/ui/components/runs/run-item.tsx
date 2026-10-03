@@ -1,4 +1,4 @@
-import type { RunRecord, RunStatus } from "@experiments/types/run";
+import type { RunRecord } from "@experiments/types/run";
 import {
 	ArrowRight01Icon,
 	Calendar03Icon,
@@ -8,7 +8,6 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import type * as React from "react";
-import { Badge } from "@/components/ui/badge";
 import {
 	Item,
 	ItemActions,
@@ -16,21 +15,7 @@ import {
 	ItemDescription,
 	ItemFooter,
 } from "@/components/ui/item";
-
-export const STATUS_LABELS: Record<RunStatus, string> = {
-	created: "Created",
-	running: "Running",
-	completed: "Completed",
-};
-
-const STATUS_VARIANTS: Record<
-	RunStatus,
-	React.ComponentProps<typeof Badge>["variant"]
-> = {
-	created: "outline",
-	running: "default",
-	completed: "secondary",
-};
+import { RunStatusBadge } from "./status-badge";
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", {
 	dateStyle: "medium",
@@ -64,9 +49,7 @@ export function RunItem({ run }: { run: RunRecord }) {
 			<ItemContent className="min-w-0">
 				<div className="flex min-w-0 items-center gap-2 font-medium leading-snug">
 					<span className="truncate">{run.name}</span>
-					<Badge variant={STATUS_VARIANTS[run.status]}>
-						{STATUS_LABELS[run.status]}
-					</Badge>
+					<RunStatusBadge status={run.status} />
 				</div>
 				<ItemDescription className="truncate font-mono">
 					{run.runId}

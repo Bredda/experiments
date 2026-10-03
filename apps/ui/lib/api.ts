@@ -1,5 +1,9 @@
 import type { AnyEvent } from "@experiments/types/events";
-import type { EventRecord, RunRecord } from "@experiments/types/run";
+import type {
+	EventRecord,
+	RunRecord,
+	StepResult,
+} from "@experiments/types/run";
 import type { ScenarioConfig } from "@experiments/types/scenario";
 import { apiFetch } from "./fetch";
 
@@ -27,4 +31,11 @@ export async function getRunEvents(runId: string): Promise<AnyEvent[]> {
 		cache: "no-store",
 	});
 	return records.map((r) => r.payload);
+}
+
+/** Advances the run by one step; resolves with the updated run and the events the step added. */
+export async function stepRun(runId: string): Promise<StepResult> {
+	return await apiFetch<StepResult>(`runs/${runId}/steps/next`, {
+		method: "POST",
+	});
 }

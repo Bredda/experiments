@@ -1,5 +1,6 @@
 export * from "./agents";
 export { SimulationClock } from "./clock";
+export * from "./errors";
 export { EventLog } from "./eventLog";
 export * from "./memory";
 export { Registry } from "./registry";

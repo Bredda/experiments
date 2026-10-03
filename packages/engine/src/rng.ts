@@ -19,11 +19,16 @@ function hashSeed(seed: string): number {
 export class SeededRandom {
 	#state: number;
 
-	constructor(seed: string) {
+	/**
+	 * `stream` derives an independent sequence from the same seed (for example
+	 * one per simulation step), so a stream can be recreated without replaying
+	 * the draws that came before it.
+	 */
+	constructor(seed: string, stream?: number) {
 		if (!SEED_PATTERN.test(seed)) {
 			throw new Error(`Invalid seed "${seed}": expected only 0-9 and A-Z`);
 		}
-		this.#state = hashSeed(seed);
+		this.#state = hashSeed(stream === undefined ? seed : `${seed}:${stream}`);
 	}
 
 	random(): number {

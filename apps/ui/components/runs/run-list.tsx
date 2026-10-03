@@ -19,7 +19,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { RunItem, STATUS_LABELS } from "./run-item";
+import { RunItem } from "./run-item";
+import { STATUS_LABELS } from "./status-badge";
 
 type StatusFilter = RunStatus | "all";
 type SortKey = "newest" | "oldest" | "name-asc" | "name-desc";

@@ -25,6 +25,16 @@ export class SimulationClock {
 		return this.now;
 	}
 
+	/** Undoes one `advance()`, used when a step fails and must not count. */
+	rewind(): void {
+		this.#step = Math.max(0, this.#step - 1);
+	}
+
+	/** Positions the clock at an already-elapsed step (resuming a stored run). */
+	seek(step: Step): void {
+		this.#step = step;
+	}
+
 	reset(): void {
 		this.#step = 0;
 	}

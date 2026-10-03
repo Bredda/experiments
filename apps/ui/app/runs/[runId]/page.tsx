@@ -16,7 +16,8 @@ export default async function RunPage({
 		<div className="h-[calc(100svh-var(--header-height))] overflow-hidden">
 			<RegisterRunTab runId={runId} name={run.name} />
 			<Suspense fallback={<div>loading...</div>}>
-				<RunViewer events={events} />
+				{/* Keyed by run: switching run tabs must not reuse the previous run's state. */}
+				<RunViewer key={runId} run={run} events={events} />
 			</Suspense>
 		</div>
 	);

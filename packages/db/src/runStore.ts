@@ -189,20 +189,28 @@ export class RunStore implements Disposable {
 		this.appendEvents(runId, [event]);
 	}
 
+	/** Appends all events or none: the batch runs in a single transaction. */
 	appendEvents(runId: RunId, events: Iterable<AnyEvent>): void {
 		const insert = this.#db.prepare(
 			`INSERT INTO events (run_id, step, type, payload_json, timestamp)
        VALUES (?, ?, ?, ?, ?)`,
 		);
 
-		for (const event of events) {
-			insert.run(
-				runId,
-				event.step,
-				event.type,
-				JSON.stringify(event),
-				event.timestamp,
-			);
+		this.#db.exec("BEGIN");
+		try {
+			for (const event of events) {
+				insert.run(
+					runId,
+					event.step,
+					event.type,
+					JSON.stringify(event),
+					event.timestamp,
+				);
+			}
+			this.#db.exec("COMMIT");
+		} catch (error) {
+			this.#db.exec("ROLLBACK");
+			throw error;
 		}
 	}
 

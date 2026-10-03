@@ -9,7 +9,7 @@ import {
 	ItemTitle,
 } from "@/components/ui/item";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "../ui/button";
+import { cn } from "@/lib/utils";
 import { FieldSeparator } from "../ui/field";
 
 function formatTime(timestamp: string) {
@@ -21,7 +21,6 @@ function formatTime(timestamp: string) {
 }
 
 function eventLabel(event: AnyEvent) {
-	console.log("event label", event);
 	switch (event.type) {
 		case "agent.joined":
 			return `Agent joined - ${event.agentId} `;
@@ -79,15 +78,14 @@ export function RunEvents({
 		onSelect?.(eventId);
 	};
 	return (
-		<div className="h-full">
-			<div className="p-4">
-				<div>Toolbar</div>
-				<div>
-					<Button>button A</Button>
-					<Button>button B</Button>
-				</div>
+		<div className="flex h-full min-h-0 flex-col">
+			<div className="flex h-10 shrink-0 items-center justify-between border-b px-4">
+				<span className="font-medium text-sm">Events</span>
+				<span className="text-muted-foreground text-xs">
+					{events.length} total
+				</span>
 			</div>
-			<ScrollArea className="h-full">
+			<ScrollArea className="min-h-0 flex-1">
 				{groupedEvents.length === 0 ? (
 					<div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
 						No events
@@ -101,11 +99,20 @@ export function RunEvents({
 								<StepMetadatas events={item} />
 								{item.map((event) => (
 									<Item
-										variant={selected === event.id ? "default" : "muted"}
+										variant="default"
 										key={`event_${event.id}`}
+										// The item's own anchor hover (bg-muted) would override a
+										// plain class, so the selected look is forced with `!`.
+										className={cn(
+											selected === event.id &&
+												"border-primary/50 bg-primary/10! hover:bg-primary/15!",
+										)}
 										render={
 											<Link
 												href="#"
+												aria-current={
+													selected === event.id ? "true" : undefined
+												}
 												onClick={(e) => handleSelected(e, event.id)}
 											>
 												<ItemContent>

@@ -13,11 +13,67 @@ Working plan for the feature in progress, and the backlog. Strategy and horizons
 
 ---
 
-## Current plan
+## Current plan: containerize, publish, version
 
-None. The run page redesign and autoplay are delivered. Agents now propose in parallel within a step. Next candidates: the time cursor (roadmap axis 2) and per-run cost (axis 7).
+Chore, on branch `chore/containerization`. Not tied to a roadmap axis.
 
-A plan in this file has: a goal, a short "where we are", **Decisions** (each with a recommendation, confirmed by the user before the tasks that depend on it), tasks grouped in phases (one commit per phase), each task with the files it touches and a **Verify** line, and a "Done when" block.
+**Goal:** the api and the ui build into two Docker images, a pull request proves they still build, a release publishes them to GHCR with a version, and the changelog and version number come from conventional commits instead of being maintained by hand.
+
+### Decisions
+
+- **D1. Two images, `api` and `ui`**, one Dockerfile each (`apps/api/Dockerfile`, `apps/ui/Dockerfile`, build context is the repo root) and a `docker-compose.yml` to run them together. Decided with the user.
+- **D2. Registry: GHCR**, authenticated with the workflow's `GITHUB_TOKEN`. Decided with the user.
+- **D3. Releases with release-please, one version for the whole repo** (tags `vX.Y.Z`, one `CHANGELOG.md`, both images carry the same tag). Decided with the user.
+- **D4. The api runs from TypeScript source with `tsx`**, like in development: workspace packages export `.ts` and there is no build step today. `tsx` moves to the api's `dependencies`. The image installs production dependencies only and keeps the workspace layout, so `tsx` loads the packages from `packages/` rather than from `node_modules`.
+- **D5. Where the browser finds the api.** `NEXT_PUBLIC_API_URL` is inlined into the ui at build time (build argument, default `http://localhost:8080`), and server-side rendering uses a runtime `API_URL` (in compose, `http://api:8080`). Limitation, accepted for now: a published ui image is only correct where the browser reaches the api at the baked URL; any other deployment rebuilds with its own URL. Runtime configuration through a proxy route in the ui is in the backlog.
+- **D6. Pull request titles must be conventional commits.** Merges are squashed, so the title becomes the commit message release-please reads; a check enforces it.
+- **D7. Release PRs and CI.** PRs opened with `GITHUB_TOKEN` do not trigger other workflows, so the release PR would never get its required check. The workflow uses a `RELEASE_PLEASE_TOKEN` secret (a PAT) when it exists and falls back to `GITHUB_TOKEN`; the user adds the secret.
+
+### Phase A — Images and compose
+
+- [ ] **A1. API image and runtime config**
+  `apps/api/Dockerfile` (multi-stage, Node 24, pnpm from `packageManager`, production dependencies of `api` and its workspace dependencies, non-root user, `/data` volume, healthcheck on `/healthz/live`), a `start` script in `apps/api/package.json`, `tsx` moved to dependencies, root `.dockerignore`. The image sets `ENV=production`, `API_HOST=0.0.0.0` and `DB_PATH=/data/simulation.db`.
+  Verify: `docker build` succeeds; the container starts with a valid `ANTHROPIC_API_KEY`, `/healthz/live` answers, and a run created through the api survives a container restart with the same volume.
+
+- [ ] **A2. UI image**
+  `output: "standalone"` and the tracing root in `apps/ui/next.config.ts`, `apps/ui/Dockerfile` (build argument `NEXT_PUBLIC_API_URL`, non-root user, standalone server on port 3000), and `lib/fetch.ts` reading `API_URL` on the server (D5).
+  Verify: `docker build` succeeds; with the api container reachable, the run list page renders server-side and the browser-side calls go to `NEXT_PUBLIC_API_URL`.
+
+- [ ] **A3. Compose**
+  `docker-compose.yml` with both services, a named volume for the database, `.env` as `env_file` for the api (the ui needs no key), `API_TRUSTED_ORIGIN` for the ui origin, and the ui waiting for a healthy api.
+  Verify: `docker compose up --build` then create a run, step it to completion through the ui address and check it appears after `docker compose restart`.
+
+### Phase B — CI builds the images
+
+- [ ] **B1. Build both images on pull requests**
+  Add a job to `.github/workflows/ci.yml` building `api` and `ui` with Buildx and the GitHub Actions cache, without pushing.
+  Verify: a pull request shows the two builds; the job fails if a Dockerfile breaks.
+
+### Phase C — Versioning, changelog, publishing
+
+- [ ] **C1. Conventional pull request titles** (D6)
+  `.github/workflows/pr-title.yml` validating titles against the conventional commit types.
+  Verify: a PR titled "Feat/foo" fails and "feat: foo" passes.
+
+- [ ] **C2. release-please** (D3, D7)
+  `release-please-config.json`, `.release-please-manifest.json`, a `version` in the root `package.json`, and `.github/workflows/release.yml` opening the release PR from conventional commits on `main`.
+  Verify: after the merge of this phase, a release PR with the version bump and `CHANGELOG.md` appears; merging it creates the tag and the GitHub release.
+
+- [ ] **C3. Publish images on release** (D2)
+  In the same workflow, when a release is created, build and push `ghcr.io/<owner>/<repo>/api` and `/ui` tagged `X.Y.Z`, `X.Y` and `latest`, with OCI labels. Done in that workflow because tags pushed with `GITHUB_TOKEN` do not trigger others.
+  Verify: after the first release, both images exist in GHCR with the three tags.
+
+### Phase D — Docs and wrap-up
+
+- [ ] **D1. Update documentation**
+  `README.md` (running with Docker, configuration table), `AGENT.md` (conventional commit and PR title rule, releases are automated and `CHANGELOG.md` and the version are never edited by hand, image notes), `docs/agent/` if the api or ui configuration changed, and this plan replaced by "None".
+
+### Done when
+
+- `docker compose up --build` gives a working app with data kept across restarts.
+- A pull request builds both images and rejects a non-conventional title.
+- Merging the release PR tags `vX.Y.Z`, writes the changelog, and publishes both images to GHCR.
+- `pnpm lint`, `pnpm check-types` and `pnpm test` pass.
 
 ---
 
@@ -26,6 +82,7 @@ A plan in this file has: a goal, a short "where we are", **Decisions** (each wit
 Unscheduled, not part of the current plan.
 
 - Test the `llm` agent prompt without calling the model (`packages/ai` has no test runner); the two-system-message bug fixed in phase E would have been caught by one.
+- Make the ui image configurable at runtime: a proxy route in the ui forwards browser calls to `API_URL`, so no api URL is baked at build time and CORS between ui and api disappears.
 - Rewrite the event log viewer (`components/run/events.tsx`, `event-panel.tsx`): clearer step grouping, readable labels for every event type.
 - Remove startup `console.log` calls in `apps/api/src/paths.ts` and `apps/api/src/plugins/cors.ts` in favor of the Fastify logger.
 - `components/run/header.tsx` (`RunHeader`) is no longer used anywhere; delete it or reuse it.

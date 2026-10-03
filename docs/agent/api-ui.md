@@ -32,10 +32,11 @@ Structure:
 ```text
 app/                  routes: /, /runs, /runs/[runId], /create-run
 components/ui/        shadcn primitives (style base-mira, icons: hugeicons)
-components/run/       run viewer: timeline, event inspector, header
+components/run/       run page, see "Run page" below
 components/runs/      run list and the shared status badge
 components/create-run/ scenario form (TanStack Form + Zod)
 lib/api.ts            typed API client; lib/fetch.ts is the fetch wrapper
+lib/run-view.ts       pure view logic for the run page (tested)
 lib/run-tabs.ts       open run tabs, stored in sessionStorage
 ```
 
@@ -43,8 +44,28 @@ Conventions:
 
 - Use the `@/` alias for app-internal imports.
 - Fetch data in server components through `lib/api.ts`; the API base URL is `NEXT_PUBLIC_API_URL` (default `http://localhost:8080`).
-- Runs are launched only from the create-run form, which builds a `ScenarioConfig` and `POST`s it to `/runs`. A run advances from the run page: `RunViewer` keeps `run` and `events` in client state and `stepRun` (`lib/api.ts`) appends the events a step returns. The page keys it by run id so switching run tabs does not reuse state.
+- Runs are launched only from the create-run form, which builds a `ScenarioConfig` and `POST`s it to `/runs`, and advance from the run page (see below).
 - `apiFetch` only sends a JSON content type when there is a body (Fastify rejects an empty JSON body) and throws `ApiError` with the API's `error` message and the HTTP status.
 - Types and Zod schemas come from `@experiments/types`. Reuse its enums (`AGENT_BEHAVIORS`, `MEMORY_KINDS`, `schedulerTypeSchema`) instead of repeating literals. The create-run form keeps label maps keyed by those types, so a new member fails type-checking until labelled.
 - Add shadcn primitives with the shadcn CLI (config in `components.json`) rather than writing them by hand.
-- The run page is constrained to the viewport height with independent scroll areas for timeline and inspector; keep that layout when editing it.
+- Logic that turns events into something to display (room attribution, summaries, the chat timeline, agent summaries) lives in `lib/run-view.ts` as pure functions with Vitest tests next to it (`pnpm --filter ui test`). Components only render; do not put that logic in them. There are no DOM or component tests.
+- shadcn components added so far beyond the basics: `message`, `marker`, `bubble`, `message-scroller` (these depend on `@shadcn/react`).
+
+### Run page
+
+`app/runs/[runId]/page.tsx` loads the run and its events on the server and renders `RunViewer`, keyed by run id so switching run tabs does not reuse state. The page is constrained to the viewport height and each panel scrolls on its own; keep that layout when editing it.
+
+```text
+control bar  (control-bar.tsx)   name, status, step n / N, panel toggle, Next step, Play / Pause
+event viewer (events.tsx)        raw log, collapsible; the source of truth
+centre       room-strip.tsx      one card per room, filters the chat ("All rooms" card only with several rooms)
+             chat.tsx            chat-style timeline of the selected room
+inspector    (inspector.tsx)     contextual, opens on selection, close button
+             event-panel.tsx     detail of an event (generic JSON fallback for events without a dedicated view)
+             agent-panel.tsx     read-only detail of an agent
+```
+
+- **State.** `useRunExecution` (`use-run-execution.ts`) holds `run` and `events` on the client and exposes `nextStep`, `play` and `pause`. Autoplay is a loop over the same `steps/next` call with a short fixed delay; pause lets the step in flight finish, and leaving the page stops the loop. `RunViewer` adds `selection` (`{ type: "event" | "agent"; id }`, see `selection.ts`), the room filter and the left panel toggle.
+- **One selection, many views.** Clicking an event in the viewer, a message or marker in the chat, or a proposal in the agent panel sets `selection`; the inspector, the viewer highlight and the chat highlight all read it. Agents are selected from a chat avatar or name, or from the "Agent" link in the inspector.
+- **Room of an event.** Events without a `roomId` (silent proposals, prompts) take the room their agent joined, derived from `agent.joined` events (`eventRoomId`).
+- **Chat items.** `buildTimeline` returns arrivals, a marker per step, messages, a selection marker when several agents wanted to speak, and a silence marker when nobody spoke. Each item keeps the id of the event it comes from.

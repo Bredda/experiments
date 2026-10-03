@@ -113,4 +113,18 @@ GET  /healthz/{health,live,ready}
 
 ## 12. UI
 
-Next.js App Router with shadcn components. Pages: run list, run creation form, and a run viewer. The run viewer is constrained to the viewport height: a toolbar (status, step progress, "Next step" button) above an event timeline and an event inspector, each with its own scroll area. The viewer keeps the run and its events in client state and appends what each step returns. Open runs are kept as tabs in the site header.
+Next.js App Router with shadcn components. Pages: run list, run creation form, and a run page. Open runs are kept as tabs in the site header.
+
+The run page has three roles, constrained to the viewport height with independent scroll areas:
+
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│ name · status · seed · Step n / N          [ Next step ] [ Play ] │
+├───────────┬──────────────────────────────────────┬───────────────┤
+│ Event     │ room cards (filter)                  │ Inspector     │
+│ viewer    │──────────────────────────────────────│ (event or     │
+│ (raw log) │ chat timeline of the selected room   │  agent detail)│
+└───────────┴──────────────────────────────────────┴───────────────┘
+```
+
+The left panel is the raw event log, the centre is a narrative reading of the run (messages, steps, silences, who was selected), and the right panel shows the detail of whatever is selected; it opens on selection and closes on demand. The page keeps the run and its events in client state, appends what each step returns, and can advance step by step or automatically until the run completes.

@@ -23,8 +23,8 @@ The MVP does not need sophisticated emergent behavior. It needs to prove that co
 
 | # | Axis | Horizon | Status |
 | --- | --- | --- | --- |
-| 1 | Run lifecycle | Now | Manual stepping works; autoplay and streaming pending |
-| 2 | Inspection and replay | Next | Basic timeline and inspector |
+| 1 | Run lifecycle | Now | Stepping and autoplay work; parallel agents and streaming pending |
+| 2 | Inspection and replay | Next | Run page with event viewer, room filter, chat and agent panel; time cursor pending |
 | 3 | Agents and memory | Next | LLM agents and sliding-window memory exist |
 | 4 | Interventions | Later | Not started |
 | 5 | Environment | Later | Single room |
@@ -43,7 +43,7 @@ Runs are created from a scenario built in the UI, persisted in SQLite, and advan
 
 **Goal:** understand a run as a trajectory over time.
 
-Build on the existing timeline and event inspector: richer run and event views, filtering by agent, event type or room, then a time cursor to navigate the state of the simulation at any step.
+The run page already has a raw event viewer, rooms as filters, a chat-style timeline and a read-only agent panel. What remains: filtering by agent or event type, richer event views, and a time cursor that navigates the state of the simulation at any step. The cursor belongs in the control bar, next to play/pause.
 
 **Done when:** a user can move through a finished run step by step and see what each agent could observe at that point.
 

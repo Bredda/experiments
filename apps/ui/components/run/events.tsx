@@ -21,7 +21,6 @@ function formatTime(timestamp: string) {
 }
 
 function eventLabel(event: AnyEvent) {
-	console.log("event label", event);
 	switch (event.type) {
 		case "agent.joined":
 			return `Agent joined - ${event.agentId} `;

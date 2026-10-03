@@ -70,18 +70,19 @@ Gaps this plan closes:
 
 ### Phase C — UI (`apps/ui`)
 
-- [ ] **C1. API client**
+- [x] **C1. API client**
   Add `stepRun(runId)` to `lib/api.ts` returning the parsed `stepResult`.
 
 - [ ] **C2. Growing run viewer**
   Move the run page from server-only events to client state: `RunViewer` receives the initial `run` and `events`, keeps both in state, and appends the events returned by `stepRun`. Add a "Next step" button (hidden or disabled when `completed`, disabled while a request is in flight) and an error toast on failure. Keep the viewport-constrained layout.
   Files: `app/runs/[runId]/page.tsx`, `components/run/viewer.tsx`.
   Verify: in the browser, each click appends one step of events without a reload; reloading shows the same events.
+  Status: implemented (state in `RunViewer`, keyed per run; toolbar with badge, `Step n / N` and the button; 409 resyncs the run). Not yet clicked through in a browser: the sandbox browser lacks system libraries. SSR output, CORS preflight and the POST were checked with curl. Tick this after a manual run.
 
-- [ ] **C3. Status badge**
-  Show the run status with the existing `Badge` in the run page header and in the runs list (`components/runs/run-item.tsx`). The header must update when a step completes the run.
+- [x] **C3. Status badge**
+  Show the run status with the existing `Badge` in the run page toolbar and in the runs list. Shared `RunStatusBadge` in `components/runs/status-badge.tsx`; the toolbar updates when a step completes the run.
 
-- [ ] **C4. Remove debug logging in touched code**
+- [x] **C4. Remove debug logging in touched code**
   Delete the `console.log` calls in `components/run/viewer.tsx` and `components/run/events.tsx`.
 
 ### Phase D — Docs and wrap-up
@@ -104,4 +105,6 @@ Unscheduled, not part of the current plan.
 
 - Rewrite the event log viewer (`components/run/events.tsx`, `event-panel.tsx`): clearer step grouping, readable labels for every event type.
 - Remove startup `console.log` calls in `apps/api/src/paths.ts` and `apps/api/src/plugins/cors.ts` in favor of the Fastify logger.
+- Auto-scroll the event timeline to the newest events when a step is added.
+- `components/run/header.tsx` (`RunHeader`) is no longer used anywhere; delete it or reuse it.
 - Support more than one room per scenario (the engine currently throws unless there is exactly one).

@@ -66,13 +66,15 @@ The run page is a three-column grid: event timeline (420 px), a "This will be ma
 
 ### Phase B — Rooms
 
-- [ ] **B1. Run view helpers** `(needs decision D5)`
+- [x] **B1. Run view helpers** `(needs decision D5)`
   Set up Vitest in `apps/ui` (`test` script, node environment). New `lib/run-view.ts` with pure functions: `agentRooms(events)`, `eventRoomId(event, agentRooms)` (D4) and `roomSummaries(run, events)` returning, per room, its members, message count, last speaker and number of silent steps.
   Verify: unit tests cover a scenario with silent steps and `stay_silent` proposals attributed to the right room.
+  Status: done (`lib/run-view.ts`, 5 tests). `apps/ui` had `@types/node` `^20`, which does not satisfy Vitest's peer range and left the install broken, so it now uses `26.5.0` like the other packages.
 
 - [ ] **B2. Room strip and filter**
   New `components/run/room-strip.tsx`: one simple card per room (`Card`/`Item`) showing the summary data, acting as a select; an "All rooms" card (D2). State `roomFilter` in `RunViewer`, default "all".
   Verify: with a single-room run only one card shows; selecting it highlights it.
+  Status: implemented (`components/run/room-strip.tsx`, filter state in `RunViewer`; with one room the filter starts on that room). The filter has no visible effect until phase C. Awaiting a manual check.
 
 ### Phase C — Chat timeline
 

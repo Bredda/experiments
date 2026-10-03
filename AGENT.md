@@ -34,7 +34,7 @@ pnpm dev           # api (tsx watch, :8080) + ui (next dev, :3000)
 pnpm lint          # biome check
 pnpm format        # biome check --write
 pnpm check-types   # turbo: tsc --noEmit in every package (ui runs next typegen first)
-pnpm test          # turbo test (Vitest in packages/engine)
+pnpm test          # turbo test (Vitest in packages/engine and apps/ui)
 ```
 
 API docs are served at `/reference` (Scalar); health probes are under `/healthz`.
@@ -92,7 +92,7 @@ Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/a
 
 ## Testing
 
-Vitest runs in `packages/engine` (`pnpm --filter @experiments/engine test`); tests sit next to the code as `*.test.ts` and use a temporary SQLite file, never real LLM calls. When changing simulation behavior, cover the contract (silent steps, time advancement, fixed-seed reproducibility, scheduler selection, run persistence). Other packages have no runner yet: add a `test` script there when you write their first test.
+Vitest runs in `packages/engine` (`pnpm --filter @experiments/engine test`) and `apps/ui` (`pnpm --filter ui test`); tests sit next to the code as `*.test.ts` and use a temporary SQLite file, never real LLM calls. When changing simulation behavior, cover the contract (silent steps, time advancement, fixed-seed reproducibility, scheduler selection, run persistence). In `apps/ui`, Vitest covers only pure view logic in `lib/` (node environment, no DOM or component tests). Other packages have no runner yet: add a `test` script there when you write their first test.
 
 ## Where to look
 

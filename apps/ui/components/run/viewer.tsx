@@ -2,14 +2,16 @@
 
 import type { AnyEvent } from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { toast } from "@/components/ui/toast";
 import { getRun, getRunEvents, stepRun } from "@/lib/api";
 import { ApiError } from "@/lib/fetch";
+import { roomSummaries } from "@/lib/run-view";
 import { cn } from "@/lib/utils";
 import { ControlBar } from "./control-bar";
 import { RunEvents } from "./events";
 import { Inspector } from "./inspector";
+import { RoomStrip } from "./room-strip";
 import type { RunSelection } from "./selection";
 
 function currentStep(events: AnyEvent[]) {
@@ -27,6 +29,14 @@ export function RunViewer({
 	const [events, setEvents] = useState(initialEvents);
 	const [selection, setSelection] = useState<RunSelection | null>(null);
 	const [eventsOpen, setEventsOpen] = useState(true);
+	// null means all rooms. A run with a single room has no "All rooms" card,
+	// so that room is the filter from the start.
+	const [roomFilter, setRoomFilter] = useState<string | null>(
+		initialRun.scenario.rooms.length === 1
+			? (initialRun.scenario.rooms[0]?.id ?? null)
+			: null,
+	);
+	const rooms = useMemo(() => roomSummaries(run, events), [run, events]);
 	const [pending, setPending] = useState(false);
 
 	const handleNextStep = async () => {
@@ -86,7 +96,11 @@ export function RunViewer({
 					</aside>
 				)}
 				<section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4">
-					<Placeholder className="h-24 shrink-0">Rooms</Placeholder>
+					<RoomStrip
+						rooms={rooms}
+						selected={roomFilter}
+						onSelect={setRoomFilter}
+					/>
 					<Placeholder className="min-h-0 flex-1">Timeline</Placeholder>
 				</section>
 				{selection && (

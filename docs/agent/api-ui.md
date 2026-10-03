@@ -43,7 +43,7 @@ lib/run-tabs.ts       open run tabs, stored in sessionStorage
 Conventions:
 
 - Use the `@/` alias for app-internal imports.
-- Fetch data in server components through `lib/api.ts`; the API base URL is `NEXT_PUBLIC_API_URL` (default `http://localhost:8080`).
+- Fetch data in server components through `lib/api.ts`. The api address is `NEXT_PUBLIC_API_URL` (default `http://localhost:8080`), inlined at build time and used by the browser; server-side rendering uses `API_URL` when set (read at runtime, for instance `http://api:8080` inside Docker). See `apiUrl()` in `lib/fetch.ts`.
 - Runs are launched only from the create-run form, which builds a `ScenarioConfig` and `POST`s it to `/runs`, and advance from the run page (see below).
 - `apiFetch` only sends a JSON content type when there is a body (Fastify rejects an empty JSON body) and throws `ApiError` with the API's `error` message and the HTTP status.
 - Types and Zod schemas come from `@experiments/types`. Reuse its enums (`AGENT_BEHAVIORS`, `MEMORY_KINDS`, `schedulerTypeSchema`) instead of repeating literals. The create-run form keeps label maps keyed by those types, so a new member fails type-checking until labelled.

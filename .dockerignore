@@ -1,0 +1,17 @@
+# Keep the build context small and free of local state and secrets.
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+.git
+.github
+.husky
+.claude
+.vscode
+.env
+.env.*
+runs
+*.db
+*.db-journal
+docs
+*.md

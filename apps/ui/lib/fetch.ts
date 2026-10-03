@@ -1,4 +1,17 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+// Where the browser reaches the api. Inlined at build time (NEXT_PUBLIC_*).
+const PUBLIC_API_URL =
+	process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
+/**
+ * Server-side rendering may reach the api at another address than the browser
+ * does (inside a Docker network, for instance): API_URL, read at runtime, wins
+ * there.
+ */
+function apiUrl(): string {
+	return typeof window === "undefined"
+		? (process.env.API_URL ?? PUBLIC_API_URL)
+		: PUBLIC_API_URL;
+}
 
 export class ApiError extends Error {
 	constructor(
@@ -26,7 +39,7 @@ export async function apiFetch<T>(
 	init: RequestInit = {},
 ): Promise<T> {
 	const endpoint = path.startsWith("/") ? path : `/${path}`;
-	const res = await fetch(`${API_URL}${endpoint}`, {
+	const res = await fetch(`${apiUrl()}${endpoint}`, {
 		...init,
 		method: init.method ?? "GET",
 		headers: {

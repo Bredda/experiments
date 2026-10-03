@@ -34,6 +34,8 @@ agents observe → agents propose actions → scheduler selects → action execu
 
 Agents never mutate the simulation directly; intent is expressed as actions, and facts are recorded as events.
 
+A run advances one step at a time, on request. Each step is atomic: its events are persisted together once every agent has answered, and a failed step (for example an LLM error) leaves no trace and can be retried. The simulation is rebuilt from the stored scenario and events before each step, so the API holds no simulation state between requests.
+
 ## 4. Time
 
 Simulation time is controlled by `SimulationClock` and advances on every step, including steps where nobody acts. Silence is part of the trajectory:
@@ -66,7 +68,7 @@ An agent's behavior is pluggable (`mentioned`, `silent`, `llm`), as is its memor
 
 ## 7. Scheduling
 
-The scheduler is separate from agents so arbitration policies are interchangeable. Only `speak` proposals are candidates. Implemented policies: `highest_urgency` and `weighted_random`, the latter using the seeded rng.
+The scheduler is separate from agents so arbitration policies are interchangeable. Only `speak` proposals are candidates. Implemented policies: `highest_urgency` and `weighted_random`, the latter using the rng of the current step.
 
 ## 8. Scenarios
 
@@ -90,7 +92,7 @@ Seeds are alphanumeric (`0-9`, `A-Z`). The engine currently supports exactly one
 
 ## 9. Runs and persistence
 
-A run is stored in SQLite (`DB_PATH`) through `RunStore`: a `runs` table (id, name, seed, status, created_at), a `scenarios` table (scenario JSON per run) and an append-only `events` table. Run status is `created`, `running` or `completed`.
+A run is stored in SQLite (`DB_PATH`) through `RunStore`: a `runs` table (id, name, seed, status, created_at), a `scenarios` table (scenario JSON per run) and an append-only `events` table. Every event is persisted. Run status is `created` after creation, `running` after the first step and `completed` once the scenario's number of steps is reached; a completed run cannot be stepped, and only one step can execute at a time per run.
 
 ## 10. Reproducibility
 
@@ -111,4 +113,4 @@ GET  /healthz/{health,live,ready}
 
 ## 12. UI
 
-Next.js App Router with shadcn components. Pages: run list, run creation form, and a run viewer. The run viewer is constrained to the viewport height with a fixed header, an event timeline and an event inspector, each with its own scroll area. Open runs are kept as tabs in the site header.
+Next.js App Router with shadcn components. Pages: run list, run creation form, and a run viewer. The run viewer is constrained to the viewport height: a toolbar (status, step progress, "Next step" button) above an event timeline and an event inspector, each with its own scroll area. The viewer keeps the run and its events in client state and appends what each step returns. Open runs are kept as tabs in the site header.

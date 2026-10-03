@@ -23,7 +23,7 @@ The MVP does not need sophisticated emergent behavior. It needs to prove that co
 
 | # | Axis | Horizon | Status |
 | --- | --- | --- | --- |
-| 1 | Run lifecycle | Now | In progress |
+| 1 | Run lifecycle | Now | Manual stepping works; autoplay and streaming pending |
 | 2 | Inspection and replay | Next | Basic timeline and inspector |
 | 3 | Agents and memory | Next | LLM agents and sliding-window memory exist |
 | 4 | Interventions | Later | Not started |
@@ -35,7 +35,7 @@ The MVP does not need sophisticated emergent behavior. It needs to prove that co
 
 **Goal:** create, execute and follow a run entirely from the UI and API.
 
-Runs can be created from a scenario built in the UI and are persisted in SQLite. What is missing is executing them: stepping a run forward, tracking its status from created to completed, and showing progress live. Later, play/pause and streaming within a step if LLM latency requires it.
+Runs are created from a scenario built in the UI, persisted in SQLite, and advanced one step at a time from the run page; status moves from created to completed. What remains is automatic execution (play/pause) and live progress within a step if LLM latency requires it.
 
 **Done when:** a user can launch a run, advance it to completion and watch it unfold without leaving the UI.
 

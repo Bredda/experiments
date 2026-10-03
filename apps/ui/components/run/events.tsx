@@ -9,6 +9,7 @@ import {
 	ItemTitle,
 } from "@/components/ui/item";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { FieldSeparator } from "../ui/field";
 
 function formatTime(timestamp: string) {
@@ -98,11 +99,20 @@ export function RunEvents({
 								<StepMetadatas events={item} />
 								{item.map((event) => (
 									<Item
-										variant={selected === event.id ? "default" : "muted"}
+										variant="muted"
 										key={`event_${event.id}`}
+										// The item's own anchor hover (bg-muted) would override a
+										// plain class, so the selected look is forced with `!`.
+										className={cn(
+											selected === event.id &&
+												"border-primary/50 bg-primary/10! hover:bg-primary/15!",
+										)}
 										render={
 											<Link
 												href="#"
+												aria-current={
+													selected === event.id ? "true" : undefined
+												}
 												onClick={(e) => handleSelected(e, event.id)}
 											>
 												<ItemContent>

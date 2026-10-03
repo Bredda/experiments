@@ -99,7 +99,7 @@ export function RunEvents({
 								<StepMetadatas events={item} />
 								{item.map((event) => (
 									<Item
-										variant="muted"
+										variant="default"
 										key={`event_${event.id}`}
 										// The item's own anchor hover (bg-muted) would override a
 										// plain class, so the selected look is forced with `!`.

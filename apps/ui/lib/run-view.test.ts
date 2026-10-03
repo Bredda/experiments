@@ -9,7 +9,12 @@ import {
 } from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
 import { describe, expect, it } from "vitest";
-import { agentRooms, eventRoomId, roomSummaries } from "./run-view";
+import {
+	agentRooms,
+	buildTimeline,
+	eventRoomId,
+	roomSummaries,
+} from "./run-view";
 
 const TIME = "2026-01-01T00:00:00.000Z";
 const base = (step: number) => ({ id: randomUUID(), timestamp: TIME, step });
@@ -36,6 +41,19 @@ const proposedSpeak = (agentId: string, roomId: string, step: number) =>
 		type: "action.proposed",
 		agentId,
 		action: { type: "speak", agentId, roomId, content: "hi" },
+	});
+
+const proposedSpeakWith = (
+	agentId: string,
+	roomId: string,
+	step: number,
+	urgency: number,
+) =>
+	actionProposedSchema.parse({
+		...base(step),
+		type: "action.proposed",
+		agentId,
+		action: { type: "speak", agentId, roomId, content: "hi", urgency },
 	});
 
 const selected = (agentId: string, roomId: string, step: number) =>
@@ -153,5 +171,97 @@ describe("roomSummaries", () => {
 
 		expect(main?.silentSteps).toBe(0);
 		expect(main?.messageCount).toBe(0);
+	});
+});
+
+describe("buildTimeline", () => {
+	const events: AnyEvent[] = [
+		joined("alice", "main"),
+		joined("bob", "main"),
+		joined("carol", "side"),
+		// step 1: alice and bob both want to speak in main, alice wins
+		proposedSpeakWith("alice", "main", 1, 0.9),
+		proposedSpeakWith("bob", "main", 1, 0.2),
+		proposedSilent("carol", 1),
+		selected("alice", "main", 1),
+		published("alice", "main", 1),
+		// step 2: nobody speaks
+		proposedSilent("alice", 2),
+		proposedSilent("bob", 2),
+		proposedSilent("carol", 2),
+	];
+
+	const kinds = (room: string | null) =>
+		buildTimeline(events, room).map((item) => item.kind);
+
+	it("lists arrivals, then each step with what was said or a silence", () => {
+		expect(kinds(null)).toEqual([
+			"joined",
+			"joined",
+			"joined",
+			"step",
+			"selection",
+			"message",
+			"step",
+			"silence",
+		]);
+	});
+
+	it("explains the selection with every candidate, most urgent first", () => {
+		const selection = buildTimeline(events, null).find(
+			(item) => item.kind === "selection",
+		);
+
+		expect(selection).toMatchObject({
+			selected: "alice",
+			candidates: [
+				{ agentId: "alice", urgency: 0.9 },
+				{ agentId: "bob", urgency: 0.2 },
+			],
+		});
+	});
+
+	it("keeps only the chosen room, and shows its silent steps", () => {
+		expect(kinds("main")).toEqual([
+			"joined",
+			"joined",
+			"step",
+			"selection",
+			"message",
+			"step",
+			"silence",
+		]);
+		// carol's room never spoke: both steps are silent there.
+		expect(kinds("side")).toEqual([
+			"joined",
+			"step",
+			"silence",
+			"step",
+			"silence",
+		]);
+	});
+
+	it("skips the selection marker when only one agent wanted to speak", () => {
+		const lone: AnyEvent[] = [
+			joined("alice", "main"),
+			proposedSpeakWith("alice", "main", 1, 0.5),
+			selected("alice", "main", 1),
+			published("alice", "main", 1),
+		];
+
+		expect(buildTimeline(lone, null).map((item) => item.kind)).toEqual([
+			"joined",
+			"step",
+			"message",
+		]);
+	});
+
+	it("keeps the id of the event each item comes from", () => {
+		const message = buildTimeline(events, null).find(
+			(item) => item.kind === "message",
+		);
+		const source = events.find((event) => event.type === "message.published");
+
+		expect(message).toMatchObject({ eventId: source?.id, content: "hi" });
 	});
 });

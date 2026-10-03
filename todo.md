@@ -71,24 +71,27 @@ The run page is a three-column grid: event timeline (420 px), a "This will be ma
   Verify: unit tests cover a scenario with silent steps and `stay_silent` proposals attributed to the right room.
   Status: done (`lib/run-view.ts`, 5 tests). `apps/ui` had `@types/node` `^20`, which does not satisfy Vitest's peer range and left the install broken, so it now uses `26.5.0` like the other packages.
 
-- [ ] **B2. Room strip and filter**
+- [x] **B2. Room strip and filter**
   New `components/run/room-strip.tsx`: one simple card per room (`Card`/`Item`) showing the summary data, acting as a select; an "All rooms" card (D2). State `roomFilter` in `RunViewer`, default "all".
   Verify: with a single-room run only one card shows; selecting it highlights it.
-  Status: implemented (`components/run/room-strip.tsx`, filter state in `RunViewer`; with one room the filter starts on that room). The filter has no visible effect until phase C. Awaiting a manual check.
+  Status: implemented (`components/run/room-strip.tsx`, filter state in `RunViewer`; with one room the filter starts on that room). The filter has no visible effect until phase C. Checked by the user.
 
 ### Phase C — Chat timeline
 
-- [ ] **C1. Add the shadcn components**
+- [x] **C1. Add the shadcn components**
   Install `message`, `marker` and `message-scroller` with the shadcn CLI (this adds `@shadcn/react`).
   Verify: `pnpm check-types` passes and the files sit in `components/ui/`.
+  Status: done. Also added `bubble` (the registry's message examples wrap message text in it) and `@shadcn/react` as a dependency.
 
-- [ ] **C2. Timeline builder**
+- [x] **C2. Timeline builder**
   `buildTimeline(events, roomFilter)` in `lib/run-view.ts` returns a list of items: step marker, agent-joined marker, silence marker (a step where nobody spoke), message, and selection marker (who was picked, with the competing urgencies). Every item keeps the id of the event it comes from.
   Verify: unit tests for a step with a message, a silent step, and a step with several proposals.
+  Status: done (`buildTimeline` in `lib/run-view.ts`, 5 tests). A selection marker only appears when several agents wanted to speak in the room; a silence marker appears when nobody spoke in the filtered view.
 
 - [ ] **C3. Chat component**
   New `components/run/chat.tsx` using `Message`, `Marker` and `MessageScroller`: follows the newest item, with a way back to the latest when scrolled up. Clicking an item sets the selection (D1) and the matching event is highlighted in the event viewer.
   Verify: clicking "Next step" appends items and the view follows; clicking a message opens its event in the inspector.
+  Status: implemented (`components/run/chat.tsx`: messages in bubbles, markers for steps, arrivals, silences and selections, clickable ones open the inspector; room filter applied; `MessageScroller` follows the newest entry and shows a scroll-to-end button). Server-rendered output checked; awaiting a manual check.
 
 ### Phase D — Agent panel
 

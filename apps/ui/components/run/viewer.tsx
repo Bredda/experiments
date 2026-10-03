@@ -2,12 +2,12 @@
 
 import type { AnyEvent } from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
-import { type ReactNode, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "@/components/ui/toast";
 import { getRun, getRunEvents, stepRun } from "@/lib/api";
 import { ApiError } from "@/lib/fetch";
 import { roomSummaries } from "@/lib/run-view";
-import { cn } from "@/lib/utils";
+import { Chat } from "./chat";
 import { ControlBar } from "./control-bar";
 import { RunEvents } from "./events";
 import { Inspector } from "./inspector";
@@ -101,7 +101,16 @@ export function RunViewer({
 						selected={roomFilter}
 						onSelect={setRoomFilter}
 					/>
-					<Placeholder className="min-h-0 flex-1">Timeline</Placeholder>
+					<div className="min-h-0 flex-1 overflow-hidden rounded-lg border">
+						<Chat
+							events={events}
+							roomId={roomFilter}
+							selectedEventId={
+								selection?.type === "event" ? selection.id : null
+							}
+							onSelectEvent={(id) => setSelection({ type: "event", id })}
+						/>
+					</div>
 				</section>
 				{selection && (
 					<aside className="min-h-0 w-90 shrink-0 border-l">
@@ -113,26 +122,6 @@ export function RunViewer({
 					</aside>
 				)}
 			</div>
-		</div>
-	);
-}
-
-/** Marks a zone of the page that a later phase fills in. */
-function Placeholder({
-	className,
-	children,
-}: {
-	className?: string;
-	children: ReactNode;
-}) {
-	return (
-		<div
-			className={cn(
-				"flex items-center justify-center rounded-lg border border-dashed text-muted-foreground text-sm",
-				className,
-			)}
-		>
-			{children}
 		</div>
 	);
 }

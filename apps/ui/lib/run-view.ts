@@ -77,3 +77,115 @@ export function roomSummaries(
 		};
 	});
 }
+
+export type TimelineItem =
+	| { kind: "step"; key: string; step: number; time: string }
+	| { kind: "joined"; key: string; eventId: string; agentId: string }
+	| {
+			kind: "message";
+			key: string;
+			eventId: string;
+			step: number;
+			agentId: string;
+			content: string;
+	  }
+	| {
+			kind: "selection";
+			key: string;
+			eventId: string;
+			step: number;
+			selected: string;
+			/** Every agent that proposed to speak in that room, highest urgency first. */
+			candidates: { agentId: string; urgency: number }[];
+	  }
+	| { kind: "silence"; key: string; step: number };
+
+/**
+ * Chat-style reading of the event log: arrivals, then for each step a marker
+ * followed by what was said, or by a silence marker when nobody spoke. A
+ * selection marker explains who won when several agents wanted to speak.
+ * `roomId` limits the view to one room; null shows every room.
+ */
+export function buildTimeline(
+	events: readonly AnyEvent[],
+	roomId: string | null,
+): TimelineItem[] {
+	const rooms = agentRooms(events);
+	const inRoom = (event: AnyEvent) =>
+		roomId === null || eventRoomId(event, rooms) === roomId;
+
+	const lastStep = events.reduce((max, event) => Math.max(max, event.step), 0);
+	const items: TimelineItem[] = [];
+
+	for (const event of events) {
+		if (event.type === "agent.joined" && inRoom(event)) {
+			items.push({
+				kind: "joined",
+				key: event.id,
+				eventId: event.id,
+				agentId: event.agentId,
+			});
+		}
+	}
+
+	for (let step = 1; step <= lastStep; step++) {
+		const stepEvents = events.filter((event) => event.step === step);
+		const time = stepEvents[0]?.timestamp;
+		if (time === undefined) continue;
+
+		items.push({ kind: "step", key: `step-${step}`, step, time });
+
+		let spoke = false;
+		for (const event of stepEvents) {
+			if (!inRoom(event)) continue;
+
+			if (event.type === "action.selected") {
+				const room = eventRoomId(event, rooms);
+				const candidates = stepEvents
+					.filter(
+						(other) =>
+							other.type === "action.proposed" &&
+							other.action.type === "speak" &&
+							eventRoomId(other, rooms) === room,
+					)
+					.map((other) => ({
+						agentId: other.agentId,
+						urgency:
+							other.type === "action.proposed" && other.action.type === "speak"
+								? other.action.urgency
+								: 0,
+					}))
+					.sort((a, b) => b.urgency - a.urgency);
+
+				if (candidates.length > 1) {
+					items.push({
+						kind: "selection",
+						key: event.id,
+						eventId: event.id,
+						step,
+						selected: event.agentId,
+						candidates,
+					});
+				}
+			}
+
+			if (event.type === "message.published") {
+				spoke = true;
+				items.push({
+					kind: "message",
+					key: event.id,
+					eventId: event.id,
+					step,
+					agentId: event.agentId,
+					content: event.content,
+				});
+			}
+		}
+
+		if (!spoke) {
+			items.push({ kind: "silence", key: `silence-${step}`, step });
+		}
+	}
+
+	return items;
+}

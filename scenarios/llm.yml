@@ -1,0 +1,27 @@
+name: "[basic-room]LLM Agents"
+seed: 42
+
+agents:
+  - id: alice
+    behavior: llm
+    memory: sliding_window
+
+  - id: bob
+    behavior: llm
+    memory: sliding_window
+
+  - id: charlie
+    behavior: llm
+    memory: sliding_window
+
+rooms:
+  - id: main
+    members:
+      - alice
+      - bob
+      - charlie
+
+scheduler:
+  type: highest_urgency
+
+steps: 3

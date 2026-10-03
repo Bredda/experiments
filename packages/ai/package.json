@@ -1,0 +1,28 @@
+{
+	"name": "@experiments/ai",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"lint": "biome check",
+		"check-types": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@experiments/biome-config": "workspace:^",
+		"@experiments/typescript-config": "workspace:*",
+		"@types/node": "26.5.0",
+		"typescript": "7.0.2"
+	},
+	"dependencies": {
+		"@experiments/engine": "workspace:*",
+		"@experiments/settings": "workspace:*",
+		"@experiments/types": "workspace:*",
+		"@langchain/anthropic": "^1.5.10",
+		"@langchain/core": "^1.2.12",
+		"langchain": "^1.5.11",
+		"zod": "^4.6.5"
+	}
+}

@@ -1,0 +1,16 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
+	"root": true,
+	"extends": ["./packages/biome-config/base.json"],
+	"files": {
+		"includes": [
+			"**",
+			"!**/node_modules",
+			"!**/.next",
+			"!**/.turbo",
+			"!**/dist",
+			"!**/build",
+			"!runs"
+		]
+	}
+}

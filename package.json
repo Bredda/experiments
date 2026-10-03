@@ -1,0 +1,20 @@
+{
+	"name": "experiments",
+	"private": true,
+	"scripts": {
+		"build": "turbo run build",
+		"dev": "turbo run dev",
+		"lint": "biome check",
+		"format": "biome check --write",
+		"check-types": "turbo run check-types"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.12",
+		"turbo": "^2.11.2",
+		"typescript": "7.0.2"
+	},
+	"packageManager": "pnpm@12.3.4",
+	"engines": {
+		"node": ">=24"
+	}
+}

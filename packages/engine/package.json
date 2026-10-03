@@ -1,0 +1,28 @@
+{
+	"name": "@experiments/engine",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"lint": "biome check",
+		"check-types": "tsc --noEmit",
+		"execute": "tsx src/index.ts run mentioned.yml"
+	},
+	"devDependencies": {
+		"@experiments/biome-config": "workspace:^",
+		"@experiments/typescript-config": "workspace:*",
+		"@types/node": "26.5.0",
+		"typescript": "7.0.2",
+		"tsx": "^4.21.0"
+	},
+	"dependencies": {
+		"@experiments/db": "workspace:*",
+		"@experiments/settings": "workspace:*",
+		"@experiments/types": "workspace:*",
+		"yaml": "^2.9.1",
+		"zod": "^4.6.5"
+	}
+}

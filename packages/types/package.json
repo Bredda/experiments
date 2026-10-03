@@ -1,0 +1,30 @@
+{
+	"name": "@experiments/types",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./ids": "./src/ids.ts",
+		"./actions": "./src/actions.ts",
+		"./events": "./src/events.ts",
+		"./memory": "./src/memory.ts",
+		"./room": "./src/room.ts",
+		"./run": "./src/run.ts",
+		"./scenario": "./src/scenario.ts",
+		"./scheduler": "./src/scheduler.ts"
+	},
+	"scripts": {
+		"lint": "biome check",
+		"check-types": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@experiments/biome-config": "workspace:^",
+		"@experiments/typescript-config": "workspace:*",
+		"@types/node": "26.5.0",
+		"typescript": "7.0.2"
+	},
+	"dependencies": {
+		"zod": "^4.6.5"
+	}
+}

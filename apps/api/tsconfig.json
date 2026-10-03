@@ -1,0 +1,12 @@
+{
+	"extends": "@experiments/typescript-config/base.json",
+	"compilerOptions": {
+		"outDir": "dist",
+		"rootDir": "src",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"allowImportingTsExtensions": true,
+		"noEmit": true
+	},
+	"include": ["src"]
+}

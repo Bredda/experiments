@@ -103,6 +103,7 @@ No test runner is configured yet, so `pnpm test` is currently a no-op. When chan
 | Adding a behavior, scheduler or memory | skill `add-engine-component` |
 | Adding an event type | skill `add-event-type` |
 | Overall design | [design.md](design.md) |
+| Current task breakdown (follow it when implementing) | [todo.md](todo.md) |
 | Planned work and ideas | [roadmap.md](roadmap.md) |
 
 `roadmap.md` is the only place for planned work and ideas. Do not implement roadmap items unless asked.

@@ -58,14 +58,17 @@ Chore, on branch `chore/containerization`. Not tied to a roadmap axis.
 - [ ] **C1. Conventional pull request titles** (D6)
   `.github/workflows/pr-title.yml` validating titles against the conventional commit types.
   Verify: a PR titled "Feat/foo" fails and "feat: foo" passes.
+  Status: written (`.github/workflows/pr-title.yml`, `pull_request_target`, so it only starts working once it is on `main`). Not provable locally.
 
 - [ ] **C2. release-please** (D3, D7)
   `release-please-config.json`, `.release-please-manifest.json`, a `version` in the root `package.json`, and `.github/workflows/release.yml` opening the release PR from conventional commits on `main`.
   Verify: after the merge of this phase, a release PR with the version bump and `CHANGELOG.md` appears; merging it creates the tag and the GitHub release.
+  Status: written (`release-please-config.json`, `.release-please-manifest.json` at 0.0.0, `version` in `package.json`, `release.yml`). With `bump-minor-pre-major` the first release should be 0.1.0. Needs the repository setting "Allow GitHub Actions to create and approve pull requests", and ideally a `RELEASE_PLEASE_TOKEN` secret (D7). Not provable locally.
 
 - [ ] **C3. Publish images on release** (D2)
   In the same workflow, when a release is created, build and push `ghcr.io/<owner>/<repo>/api` and `/ui` tagged `X.Y.Z`, `X.Y` and `latest`, with OCI labels. Done in that workflow because tags pushed with `GITHUB_TOKEN` do not trigger others.
   Verify: after the first release, both images exist in GHCR with the three tags.
+  Status: written as the `images` job of `release.yml` (matrix api and ui, login with `GITHUB_TOKEN`, tags `X.Y.Z`, `X.Y`, `latest`, lowercase image names). The ui image is built with the default `NEXT_PUBLIC_API_URL` (see D5). Not provable locally.
 
 ### Phase D — Docs and wrap-up
 

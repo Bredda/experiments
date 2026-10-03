@@ -48,9 +48,10 @@ Chore, on branch `chore/containerization`. Not tied to a roadmap axis.
 
 ### Phase B — CI builds the images
 
-- [ ] **B1. Build both images on pull requests**
+- [x] **B1. Build both images on pull requests**
   Add a job to `.github/workflows/ci.yml` building `api` and `ui` with Buildx and the GitHub Actions cache, without pushing.
   Verify: a pull request shows the two builds; the job fails if a Dockerfile breaks.
+  Status: written and the same builds pass locally; the workflow itself can only be proven by GitHub on the first pull request. New check names to require in the branch rule: `Docker build (api)` and `Docker build (ui)`.
 
 ### Phase C — Versioning, changelog, publishing
 

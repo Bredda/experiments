@@ -1,0 +1,43 @@
+# Run the whole app:  docker compose up --build
+#   ui  http://localhost:3000        api  http://localhost:8080 (docs at /reference)
+#
+# The api needs ANTHROPIC_API_KEY, read from .env (see .env.example).
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: experiments-api
+    env_file: .env
+    # Takes precedence over .env, which is meant for local development.
+    environment:
+      DB_PATH: /data/simulation.db
+      # Origin of the ui as seen by the browser (CORS).
+      API_TRUSTED_ORIGIN: http://localhost:${UI_PUBLISHED_PORT:-3000}
+    ports:
+      - "${API_PUBLISHED_PORT:-8080}:8080"
+    volumes:
+      - data:/data
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      dockerfile: apps/ui/Dockerfile
+      args:
+        # Where the browser reaches the api; inlined into the ui at build time.
+        NEXT_PUBLIC_API_URL: http://localhost:${API_PUBLISHED_PORT:-8080}
+    image: experiments-ui
+    environment:
+      # Where the ui container reaches the api, for server-side rendering.
+      API_URL: http://api:8080
+    ports:
+      - "${UI_PUBLISHED_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  data:

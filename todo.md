@@ -36,13 +36,15 @@ Chore, on branch `chore/containerization`. Not tied to a roadmap axis.
   Verify: `docker build` succeeds; the container starts with a valid `ANTHROPIC_API_KEY`, `/healthz/live` answers, and a run created through the api survives a container restart with the same volume.
   Status: done and checked locally: healthy container, run created, container removed and recreated on the same volume, the run was still there and stepped to completion. The image is about 510 MB. `docker run --env-file .env` keeps the quotes of a value like `DB_PATH="..."` (dotenv strips them), so it overrides the image's defaults with a broken path; pass only the variables you need, or use compose where `environment` wins over `env_file`.
 
-- [ ] **A2. UI image**
+- [x] **A2. UI image**
   `output: "standalone"` and the tracing root in `apps/ui/next.config.ts`, `apps/ui/Dockerfile` (build argument `NEXT_PUBLIC_API_URL`, non-root user, standalone server on port 3000), and `lib/fetch.ts` reading `API_URL` on the server (D5).
   Verify: `docker build` succeeds; with the api container reachable, the run list page renders server-side and the browser-side calls go to `NEXT_PUBLIC_API_URL`.
+  Status: done and checked through compose: the server-rendered run list and run page show data fetched from the api container, and the client bundle contains the baked `NEXT_PUBLIC_API_URL`. `next/font` downloads Google Fonts during the build, so the build needs network access.
 
-- [ ] **A3. Compose**
+- [x] **A3. Compose**
   `docker-compose.yml` with both services, a named volume for the database, `.env` as `env_file` for the api (the ui needs no key), `API_TRUSTED_ORIGIN` for the ui origin, and the ui waiting for a healthy api.
   Verify: `docker compose up --build` then create a run, step it to completion through the ui address and check it appears after `docker compose restart`.
+  Status: done with the ports moved to 18080/13000 to avoid the dev servers (`API_PUBLISHED_PORT`, `UI_PUBLISHED_PORT`): both services healthy, CORS answers for the ui origin, a run created and stepped through the api was still there after `docker compose restart`. Clicking "Next step" in a browser was not tried (no browser in the sandbox).
 
 ### Phase B — CI builds the images
 

@@ -20,7 +20,7 @@ export function ControlBar({
 	onNextStep: () => void;
 }) {
 	return (
-		<div className="flex h-11 shrink-0 items-center gap-3 border-b px-4">
+		<div className="flex h-11 shrink-0 items-center gap-3 border-b bg-card px-4">
 			<Button
 				variant={eventsOpen ? "secondary" : "ghost"}
 				size="icon-sm"

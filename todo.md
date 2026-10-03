@@ -48,21 +48,21 @@ The run page is a three-column grid: event timeline (420 px), a "This will be ma
 
 ### Phase A — Layout shell and selection
 
-- [ ] **A1. Selection state and contextual inspector**
+- [x] **A1. Selection state and contextual inspector**
   Add the `selection` state (D1). New `components/run/inspector.tsx`: a right panel with a header and a close button that renders `EventPanel` for an event selection and nothing when there is no selection. The grid has two columns when it is closed and three when open.
   Files: `components/run/viewer.tsx`, `components/run/inspector.tsx`, `components/run/event-panel.tsx`.
   Verify: selecting an event opens the panel, the close button closes it, and the centre widens accordingly.
-  Status: implemented, awaiting a manual check in the browser. Also added a generic JSON renderer in `EventPanel` so events without a dedicated view (`message.published`, `action.selected`, `agent.prompt_built`) are no longer blank in the inspector.
+  Status: checked by the user. Also added a generic JSON renderer in `EventPanel` so events without a dedicated view (`message.published`, `action.selected`, `agent.prompt_built`) are no longer blank in the inspector.
 
-- [ ] **A2. Left panel width and collapse** (D3)
+- [x] **A2. Left panel width and collapse** (D3)
   Narrow the event viewer and add a toggle to collapse it. Keep the viewport-constrained layout and independent scroll areas.
   Verify: collapsing gives its space to the centre; reload keeps the page working.
-  Status: implemented (320 px, toggle in the control bar), awaiting a manual check. The dummy "Toolbar / button A / button B" block in the event viewer was replaced by a small "Events" header with the event count.
+  Status: checked by the user (320 px, toggle in the control bar). The dummy "Toolbar / button A / button B" block in the event viewer was replaced by a small "Events" header with the event count.
 
-- [ ] **A3. Control bar and centre skeleton**
+- [x] **A3. Control bar and centre skeleton**
   Keep the current toolbar as the control bar. The centre becomes a column with a slot for the room strip and a slot for the timeline, both empty for now. Remove the "This will be main" text.
   Verify: the page renders with the three regions at 1280 px and 1500 px wide.
-  Status: implemented as `ControlBar` (`components/run/control-bar.tsx`) plus dashed "Rooms" and "Timeline" placeholders in the centre, which phases B and C replace. Server-rendered output checked; layout not yet seen at the two widths.
+  Status: implemented as `ControlBar` (`components/run/control-bar.tsx`) plus dashed "Rooms" and "Timeline" placeholders in the centre, which phases B and C replace. Checked by the user; the control bar uses the card background to stand apart from the site header.
 
 ### Phase B — Rooms
 

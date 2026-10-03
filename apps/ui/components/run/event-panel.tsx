@@ -89,6 +89,30 @@ function RenderActionProposed({
 	);
 }
 
+function RenderGenericEvent({
+	event,
+	className,
+}: {
+	event: AnyEvent;
+	className?: string;
+}) {
+	return (
+		<Card className={cn(className)}>
+			<CardHeader>
+				<CardTitle>{event.type}</CardTitle>
+				<CardDescription>
+					id: {event.id} * {event.timestamp} * Step {event.step}
+				</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<pre className="text-xs whitespace-pre-wrap">
+					{JSON.stringify(event, null, 2)}
+				</pre>
+			</CardContent>
+		</Card>
+	);
+}
+
 export function EventPanel({
 	event,
 	events,
@@ -109,6 +133,9 @@ export function EventPanel({
 					events={events}
 					className="h-full"
 				/>
+			)}
+			{event.type !== "agent.joined" && event.type !== "action.proposed" && (
+				<RenderGenericEvent event={event} className="h-full" />
 			)}
 		</ScrollArea>
 	);

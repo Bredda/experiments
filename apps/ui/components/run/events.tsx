@@ -9,7 +9,6 @@ import {
 	ItemTitle,
 } from "@/components/ui/item";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "../ui/button";
 import { FieldSeparator } from "../ui/field";
 
 function formatTime(timestamp: string) {
@@ -78,15 +77,14 @@ export function RunEvents({
 		onSelect?.(eventId);
 	};
 	return (
-		<div className="h-full">
-			<div className="p-4">
-				<div>Toolbar</div>
-				<div>
-					<Button>button A</Button>
-					<Button>button B</Button>
-				</div>
+		<div className="flex h-full min-h-0 flex-col">
+			<div className="flex h-10 shrink-0 items-center justify-between border-b px-4">
+				<span className="font-medium text-sm">Events</span>
+				<span className="text-muted-foreground text-xs">
+					{events.length} total
+				</span>
 			</div>
-			<ScrollArea className="h-full">
+			<ScrollArea className="min-h-0 flex-1">
 				{groupedEvents.length === 0 ? (
 					<div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
 						No events

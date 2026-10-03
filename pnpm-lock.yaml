@@ -328,9 +328,6 @@ importers:
       '@experiments/db':
         specifier: workspace:*
         version: link:../db
-      '@experiments/settings':
-        specifier: workspace:*
-        version: link:../settings
       '@experiments/types':
         specifier: workspace:*
         version: link:../types

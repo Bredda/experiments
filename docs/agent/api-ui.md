@@ -8,18 +8,19 @@ Structure:
 
 ```text
 src/index.ts          bootstrap (logger, error handler, plugins, routes)
-src/plugins/          cors, sensible, OpenAPI + Scalar reference
+src/plugins/          cors, sensible, OpenAPI + Scalar reference, store (shared RunStore)
 src/routes/           one Fastify plugin per resource, registered with a prefix
 src/paths.ts          resolves DB_PATH against the monorepo root
 ```
 
-Routes: `GET/POST /runs`, `GET /runs/:id`, `GET /runs/:id/events`, and probes under `/healthz`.
+Routes: `GET/POST /runs`, `GET /runs/:id`, `GET /runs/:id/events`, `POST /runs/:id/steps/next` (advances one step, returns `{ run, events }` with only the new events), and probes under `/healthz`.
 
 Conventions:
 
 - Request and response schemas come from `@experiments/types`: `schema.toJSONSchema()` for Fastify/OpenAPI (`{ target: "draft-7" }` for bodies), `schema.parse` for validation inside handlers. Do not hand-write a parallel JSON schema.
 - `src/index.ts` imports `@experiments/ai` for its side effect (registers the `llm` behavior). Keep that import.
-- Handlers call `@experiments/engine` and `@experiments/db`; they contain no simulation logic.
+- Handlers use `app.store`, the single `RunStore` decorated by the store plugin (never open a store per request), and call engine use cases (`createRun`, `stepRun`); they contain no simulation logic.
+- Engine errors are mapped to HTTP in `src/error-handler.ts` (`RunNotFoundError` 404, `RunCompletedError` and `RunBusyError` 409). Throw them or `app.httpErrors.*`; do not build error replies by hand. Declare `params` with the id schema so malformed ids get a 400.
 - Add each new route group in `src/routes/index.ts` and give it `description` and `tags` so it shows up in `/reference`.
 
 ## UI (`apps/ui`)

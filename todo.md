@@ -59,12 +59,12 @@ Gaps this plan closes:
 
 ### Phase B — API (`apps/api`, `packages/types`)
 
-- [ ] **B1. Share one `RunStore` and fix error handling**
-  Create the store once (Fastify decorator or plugin, closed on shutdown) instead of per request. `createRun` still opens its own store from a `dbPath`; change it to take the shared store. Return 404 for an unknown run on `GET /runs/:id` and `GET /runs/:id/events`.
+- [x] **B1. Share one `RunStore` and fix error handling**
+  Create the store once (Fastify decorator or plugin, closed on shutdown) instead of per request. `createRun` now takes the shared store (`createRun(store, scenario)`), so the engine no longer depends on `@experiments/settings`. Return 404 for an unknown run on `GET /runs/:id` and `GET /runs/:id/events`.
   Files: `api/src/routes/runs.ts`, `api/src/plugins/`, `api/src/paths.ts`.
   Verify: `curl` on a random uuid returns 404; no new `RunStore` per request in the code.
 
-- [ ] **B2. `POST /runs/:id/steps/next`**
+- [x] **B2. `POST /runs/:id/steps/next`**
   Add `stepResultSchema` (`{ run: RunRecord, events: EventRecord[] }`) to `packages/types/src/run.ts` and use it for the response schema. 200 on success, 404 unknown run, 409 for completed or busy.
   Verify: calling it N times on a `steps: N` run returns the new events each time, the last response has `run.status === "completed"`, and the next call returns 409. The route shows up in `/reference`.
 

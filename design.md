@@ -105,6 +105,7 @@ GET  /runs
 POST /runs              create a run from a scenario
 GET  /runs/:id
 GET  /runs/:id/events
+POST /runs/:id/steps/next   advance one step; 409 if completed or busy
 GET  /healthz/{health,live,ready}
 ```
 

@@ -1,12 +1,29 @@
-import { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import {
+	RunBusyError,
+	RunCompletedError,
+	RunNotFoundError,
+} from "@experiments/engine";
+import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+
+function statusFor(err: FastifyError): number {
+	if (err instanceof RunNotFoundError) return 404;
+	if (err instanceof RunCompletedError || err instanceof RunBusyError) {
+		return 409;
+	}
+	return err.statusCode ?? 500;
+}
 
 export function errorHandler(
 	err: FastifyError,
-	_req: FastifyRequest,
+	req: FastifyRequest,
 	reply: FastifyReply,
 ) {
-	console.error(err);
-	const status = err.statusCode ?? 500;
+	const status = statusFor(err);
+
+	if (status >= 500) {
+		req.log.error(err);
+	}
+
 	reply.status(status).send({
 		error: status === 500 ? "Internal server error" : err.message,
 	});

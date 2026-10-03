@@ -1,11 +1,8 @@
-import { resolve } from "node:path";
-import { RunStore } from "@experiments/db";
-import { env } from "@experiments/settings";
+import type { RunStore } from "@experiments/db";
 import type { RunId } from "@experiments/types/ids";
 import type { EventRecord, RunRecord } from "@experiments/types/run";
 import type { ScenarioConfig } from "@experiments/types/scenario";
 import { RunBusyError, RunCompletedError } from "../errors";
-import { monorepoRoot } from "../paths";
 import { buildRun, loadSimulation } from "./factory";
 
 /**
@@ -14,35 +11,25 @@ import { buildRun, loadSimulation } from "./factory";
  * simulation is a separate, explicit action: see `stepRun`.
  */
 export function createRun(
+	store: RunStore,
 	scenario: ScenarioConfig,
-	options?: { dbPath?: string },
 ): RunRecord {
-	const dbPath = resolve(monorepoRoot, options?.dbPath ?? env.DB_PATH);
-
-	const store = new RunStore(dbPath);
-
-	try {
-		if (scenario.rooms.length !== 1) {
-			throw new Error(
-				"The current simulation engine supports exactly one room",
-			);
-		}
-
-		const { runId, simulation } = buildRun(scenario, { store });
-
-		const run = store.createRun({
-			runId,
-			name: scenario.name,
-			seed: scenario.seed,
-			scenario,
-		});
-
-		simulation.setup();
-
-		return run;
-	} finally {
-		store.close();
+	if (scenario.rooms.length !== 1) {
+		throw new Error("The current simulation engine supports exactly one room");
 	}
+
+	const { runId, simulation } = buildRun(scenario, { store });
+
+	const run = store.createRun({
+		runId,
+		name: scenario.name,
+		seed: scenario.seed,
+		scenario,
+	});
+
+	simulation.setup();
+
+	return run;
 }
 
 // One step at a time per run: LLM-backed steps are slow enough for a second

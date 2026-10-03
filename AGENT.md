@@ -53,7 +53,7 @@ Allowed imports between workspaces:
 apps/api        → engine, ai, db, settings, types
 apps/ui         → settings, types   (reaches the API over HTTP only)
 packages/ai     → engine, settings, types
-packages/engine → db, settings, types
+packages/engine → db, types
 packages/db     → types
 packages/types  → (Zod only)
 ```
@@ -85,7 +85,7 @@ Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/a
 - Match the surrounding code. Fields are camelCase everywhere (`agentId`, `runId`).
 - IDs are branded (`AgentId`, `RoomId`, `RunId`, `EventId`). Agent and room IDs come from scenario files and are opaque strings; run and event IDs are UUIDs.
 - Closed sets (agent behaviors, memory kinds, scheduler types) are declared as Zod enums in `packages/types`, and the engine registries must cover them exactly. Adding a member touches both sides; see the `add-engine-component` skill.
-- Server and engine code read configuration through `env` from `@experiments/settings`, not `process.env`.
+- Server code (`apps/api`, `packages/ai`) reads configuration through `env` from `@experiments/settings`, not `process.env`.
 - Prefer the smallest change that solves the task. Do not add dependencies or infrastructure without a concrete need.
 - Keep deterministic components testable offline: use fakes instead of real LLM calls.
 - Surface genuine design ambiguity instead of silently introducing a framework-level abstraction.

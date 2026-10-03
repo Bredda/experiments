@@ -40,12 +40,10 @@ function normalize(events: readonly AnyEvent[]) {
 
 let dir: string;
 let store: RunStore;
-let dbPath: string;
 
 beforeEach(() => {
 	dir = mkdtempSync(join(tmpdir(), "experiments-engine-"));
-	dbPath = join(dir, "test.db");
-	store = new RunStore(dbPath);
+	store = new RunStore(join(dir, "test.db"));
 });
 
 afterEach(() => {
@@ -59,7 +57,7 @@ function storedEvents(runId: RunId) {
 
 describe("stepRun", () => {
 	it("moves a run from created to running to completed", async () => {
-		const { runId, status } = createRun(scenario({ steps: 2 }), { dbPath });
+		const { runId, status } = createRun(store, scenario({ steps: 2 }));
 		expect(status).toBe("created");
 
 		const first = await stepRun(store, runId);
@@ -74,7 +72,7 @@ describe("stepRun", () => {
 	});
 
 	it("returns only the events added by the step, selection and message included", async () => {
-		const { runId } = createRun(scenario(), { dbPath });
+		const { runId } = createRun(store, scenario());
 		const before = store.listEvents(runId).length;
 
 		const { events } = await stepRun(store, runId);
@@ -89,12 +87,12 @@ describe("stepRun", () => {
 
 	it("records silent steps and keeps time advancing", async () => {
 		const { runId } = createRun(
+			store,
 			scenario({
 				agents: [{ id: "alice", behavior: "silent" }],
 				rooms: [{ id: "main", members: ["alice"] }],
 				steps: 2,
 			}),
-			{ dbPath },
 		);
 
 		await stepRun(store, runId);
@@ -113,7 +111,7 @@ describe("stepRun", () => {
 	});
 
 	it("allows a single step at a time per run", async () => {
-		const { runId } = createRun(scenario(), { dbPath });
+		const { runId } = createRun(store, scenario());
 
 		const results = await Promise.allSettled([
 			stepRun(store, runId),
@@ -152,7 +150,7 @@ describe("stepRun", () => {
 		continuousStore.close();
 
 		// Resumed: the simulation is rebuilt from the database for each step.
-		const { runId } = createRun(config, { dbPath });
+		const { runId } = createRun(store, config);
 		for (let i = 0; i < config.steps; i++) {
 			await stepRun(store, runId);
 		}

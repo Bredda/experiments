@@ -95,7 +95,7 @@ The run page is a three-column grid: event timeline (420 px), a "This will be ma
 
 ### Phase D — Agent panel
 
-- [ ] **D1. Agent selection and panel**
+- [x] **D1. Agent selection and panel**
   Clicking an agent (avatar or name in the chat, or a member in a room card) sets an agent selection. The inspector shows its id, behavior and memory (from `run.scenario.agents`), message count and latest proposals. Read-only.
   Verify: selecting an agent shows its data; switching between an event and an agent replaces the content.
   Status: implemented. Entry points: avatar and name in the chat, and an "Agent" link at the top of the inspector for any event. `agentSummary` in `lib/run-view.ts` (4 tests) feeds `AgentPanel`: behavior, memory and room badges, counts of messages, times selected and silent proposals, and the five latest proposals (clicking one opens its event). Not wired from the room cards, which are buttons themselves. Awaiting a manual check.
@@ -105,10 +105,12 @@ The run page is a three-column grid: event timeline (420 px), a "This will be ma
 - [ ] **E1. Play and pause** (D6)
   Add play/pause to the control bar. Playing loops `stepRun` with a short delay until the run completes, a step fails, or the user pauses; pausing waits for the step in flight. "Next step" is disabled while playing.
   Verify: play runs a scenario to completion without clicks; pause stops it between steps; an error stops playback and shows a toast.
+  Status: implemented as a hook, `components/run/use-run-execution.ts` (state, `nextStep`, `play`, `pause`; 600 ms between steps; leaving the page stops the loop), with Play/Pause and Next step in the control bar. Pause finishes the step in flight and shows "Pausing…" until then. Awaiting a manual check.
 
-- [ ] **E2. Try it on an LLM scenario**
+- [x] **E2. Try it on an LLM scenario**
   Run a run with `llm` agents through autoplay and note whether per-step latency calls for streaming inside a step. Record the outcome in `roadmap.md` axis 1.
   Verify: the outcome is written down; no code expected.
+  Status: done, see `roadmap.md` axis 1. The run exposed a bug that blocked every `llm` agent: the prompt held two system messages and Anthropic only accepts one, first. `packages/ai/src/llmAgent.ts` now sends persona and memory as a single system message.
 
 ### Phase F — Docs and wrap-up
 

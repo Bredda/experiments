@@ -35,7 +35,7 @@ The MVP does not need sophisticated emergent behavior. It needs to prove that co
 
 **Goal:** create, execute and follow a run entirely from the UI and API.
 
-Runs are created from a scenario built in the UI, persisted in SQLite, and advanced one step at a time from the run page; status moves from created to completed. What remains is automatic execution (play/pause) and live progress within a step if LLM latency requires it.
+Runs are created from a scenario built in the UI, persisted in SQLite, and advanced one step at a time from the run page; status moves from created to completed. Autoplay (play/pause) is a client loop over the same step call. Measured with three `claude-haiku-4-5` agents (about 7 to 10 seconds per step, growing with memory), the cost is that agents are called one after another, not the absence of streaming. Proposing in parallel is now possible, since agents observe the history as of the start of the step, and would bring a step close to its slowest single call (about 3 seconds). Streaming inside a step stays on hold until that is done.
 
 **Done when:** a user can launch a run, advance it to completion and watch it unfold without leaving the UI.
 

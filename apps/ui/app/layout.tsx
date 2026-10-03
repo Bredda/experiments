@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import type React from "react";
+import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -40,14 +42,19 @@ export default function RootLayout({
 				inter.variable,
 			)}
 		>
-			<body className="flex min-h-full flex-col">
+			<body>
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"
 					enableSystem
 					disableTransitionOnChange
 				>
-					{children}
+					<TooltipProvider>
+						<div className="flex min-h-svh flex-col [--header-height:calc(--spacing(14))]">
+							<SiteHeader />
+							<main className="flex flex-1 flex-col">{children}</main>
+						</div>
+					</TooltipProvider>
 				</ThemeProvider>
 			</body>
 		</html>

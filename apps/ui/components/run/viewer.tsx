@@ -19,7 +19,7 @@ export function RunViewer({ events }: { events: AnyEvent[] }) {
 	};
 
 	return (
-		<main className="h-screen pt-14">
+		<div className="h-full">
 			<div className="grid h-full min-h-0 grid-cols-[420px_minmax(0,1fr)_360px]">
 				<aside className="min-h-0 border-r">
 					<RunEvents
@@ -39,6 +39,6 @@ export function RunViewer({ events }: { events: AnyEvent[] }) {
 					)}
 				</aside>
 			</div>
-		</main>
+		</div>
 	);
 }

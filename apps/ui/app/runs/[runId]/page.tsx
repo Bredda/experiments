@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { RunHeader } from "@/components/run/header";
+import { RegisterRunTab } from "@/components/run/register-tab";
 import { RunViewer } from "@/components/run/viewer";
 import { getRun, getRunEvents } from "@/lib/api";
 
@@ -13,9 +13,9 @@ export default async function RunPage({
 	const events = await getRunEvents(runId);
 
 	return (
-		<div className="h-screen overflow-hidden">
+		<div className="h-[calc(100svh-var(--header-height))] overflow-hidden">
+			<RegisterRunTab runId={runId} name={run.name} />
 			<Suspense fallback={<div>loading...</div>}>
-				<RunHeader run={run} eventsLength={events.length} />
 				<RunViewer events={events} />
 			</Suspense>
 		</div>

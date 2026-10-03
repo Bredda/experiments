@@ -38,6 +38,6 @@ yarn-error.log*
 *.pem
 
 # Simulation runs
-runs/
+/runs/
 *.db
 *.db-journal

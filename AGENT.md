@@ -41,6 +41,8 @@ API docs are served at `/reference` (Scalar); health probes are under `/healthz`
 
 Before declaring work done: `pnpm lint` and `pnpm check-types`.
 
+Docker: `docker compose up --build` runs the api and the ui (see the README for the variables).
+
 Husky runs `biome check --staged` on commit and `check-types` + `test` on push. Fix failures; do not use `--no-verify`.
 
 Local setup: copy `.env.example` to `.env`. `@experiments/settings` validates env on import, and `ANTHROPIC_API_KEY` must match `sk-ant-api…`, so any process importing it fails without a well-formed key, even when no LLM agent is used.
@@ -89,6 +91,13 @@ Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/a
 - Prefer the smallest change that solves the task. Do not add dependencies or infrastructure without a concrete need.
 - Keep deterministic components testable offline: use fakes instead of real LLM calls.
 - Surface genuine design ambiguity instead of silently introducing a framework-level abstraction.
+
+## Commits, releases and CI
+
+- Commit messages and **pull request titles are conventional commits** (`feat:`, `fix:`, `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`, optional scope). PRs are squash-merged, so the title is what lands in history and drives the version.
+- Releases are automated by release-please. Never edit `CHANGELOG.md`, the root `version` or `.release-please-manifest.json` by hand.
+- CI (`.github/workflows/ci.yml`) runs `pnpm lint`, `pnpm check-types`, `pnpm test` and builds both Docker images on every pull request. Run those three commands before pushing.
+- Images: `apps/api/Dockerfile` and `apps/ui/Dockerfile`, built from the repo root. The api runs from TypeScript source with `tsx` (workspace packages have no build step), so `tsx` is a production dependency of `apps/api`. The ui is a Next.js standalone build; `NEXT_PUBLIC_API_URL` is baked in at build time.
 
 ## Testing
 

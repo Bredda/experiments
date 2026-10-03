@@ -44,24 +44,54 @@ jobs:
       - name: Test
         run: pnpm test
 
-  # Proves both images still build; nothing is pushed here (see release.yml).
+  # Proves both images still build before a change is merged. Images are built
+  # (and published) once per release by release.yml, so this runs only on pull
+  # requests, and not on release PRs (they only bump the version and the
+  # changelog) nor on changes that cannot affect an image. A single job with a
+  # fixed name, so that skipping its steps still reports success to a required
+  # check.
   docker:
-    name: Docker build (${{ matrix.image }})
+    name: Docker build
+    if: ${{ github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release-please--') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        image: [api, ui]
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - uses: docker/setup-buildx-action@v3
+      - name: Check whether the images are affected
+        id: changes
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if git diff --name-only "origin/${BASE_REF}...HEAD" \
+            | grep -qE '^(apps/|packages/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|\.dockerignore$|\.github/workflows/ci\.yml$)'; then
+            echo "affected=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "affected=false" >> "$GITHUB_OUTPUT"
+            echo "No file used by the images changed, skipping the builds."
+          fi
 
-      - uses: docker/build-push-action@v6
+      - if: steps.changes.outputs.affected == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build api image
+        if: steps.changes.outputs.affected == 'true'
+        uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/${{ matrix.image }}/Dockerfile
+          file: apps/api/Dockerfile
           push: false
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build ui image
+        if: steps.changes.outputs.affected == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/ui/Dockerfile
+          push: false
+          cache-from: type=gha,scope=ui
+          cache-to: type=gha,mode=max,scope=ui

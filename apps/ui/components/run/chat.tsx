@@ -71,11 +71,15 @@ function ClickableMarker({
 function TimelineEntry({
 	item,
 	selectedEventId,
+	selectedAgentId,
 	onSelectEvent,
+	onSelectAgent,
 }: {
 	item: TimelineItem;
 	selectedEventId: string | null;
+	selectedAgentId: string | null;
 	onSelectEvent: (eventId: string) => void;
+	onSelectAgent: (agentId: string) => void;
 }) {
 	switch (item.kind) {
 		case "step":
@@ -141,12 +145,28 @@ function TimelineEntry({
 			return (
 				<Message>
 					<MessageAvatar>
-						<Avatar size="sm">
-							<AvatarFallback>{initials(item.agentId)}</AvatarFallback>
-						</Avatar>
+						<button
+							type="button"
+							onClick={() => onSelectAgent(item.agentId)}
+							aria-label={`Show ${item.agentId}`}
+							aria-pressed={selectedAgentId === item.agentId}
+							className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50 aria-pressed:ring-2 aria-pressed:ring-primary"
+						>
+							<Avatar size="sm">
+								<AvatarFallback>{initials(item.agentId)}</AvatarFallback>
+							</Avatar>
+						</button>
 					</MessageAvatar>
 					<MessageContent>
-						<MessageHeader>{item.agentId}</MessageHeader>
+						<MessageHeader>
+							<button
+								type="button"
+								onClick={() => onSelectAgent(item.agentId)}
+								className="underline-offset-2 hover:text-foreground hover:underline"
+							>
+								{item.agentId}
+							</button>
+						</MessageHeader>
 						<Bubble
 							variant={selectedEventId === item.eventId ? "tinted" : "muted"}
 						>
@@ -173,12 +193,16 @@ export function Chat({
 	events,
 	roomId,
 	selectedEventId,
+	selectedAgentId,
 	onSelectEvent,
+	onSelectAgent,
 }: {
 	events: AnyEvent[];
 	roomId: string | null;
 	selectedEventId: string | null;
+	selectedAgentId: string | null;
 	onSelectEvent: (eventId: string) => void;
+	onSelectAgent: (agentId: string) => void;
 }) {
 	const items = useMemo(() => buildTimeline(events, roomId), [events, roomId]);
 
@@ -200,7 +224,9 @@ export function Chat({
 								<TimelineEntry
 									item={item}
 									selectedEventId={selectedEventId}
+									selectedAgentId={selectedAgentId}
 									onSelectEvent={onSelectEvent}
+									onSelectAgent={onSelectAgent}
 								/>
 							</MessageScrollerItem>
 						))}

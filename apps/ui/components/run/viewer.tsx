@@ -108,15 +108,21 @@ export function RunViewer({
 							selectedEventId={
 								selection?.type === "event" ? selection.id : null
 							}
+							selectedAgentId={
+								selection?.type === "agent" ? selection.id : null
+							}
 							onSelectEvent={(id) => setSelection({ type: "event", id })}
+							onSelectAgent={(id) => setSelection({ type: "agent", id })}
 						/>
 					</div>
 				</section>
 				{selection && (
 					<aside className="min-h-0 w-90 shrink-0 border-l">
 						<Inspector
+							run={run}
 							selection={selection}
 							events={events}
+							onSelect={setSelection}
 							onClose={() => setSelection(null)}
 						/>
 					</aside>

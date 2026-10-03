@@ -88,16 +88,17 @@ The run page is a three-column grid: event timeline (420 px), a "This will be ma
   Verify: unit tests for a step with a message, a silent step, and a step with several proposals.
   Status: done (`buildTimeline` in `lib/run-view.ts`, 5 tests). A selection marker only appears when several agents wanted to speak in the room; a silence marker appears when nobody spoke in the filtered view.
 
-- [ ] **C3. Chat component**
+- [x] **C3. Chat component**
   New `components/run/chat.tsx` using `Message`, `Marker` and `MessageScroller`: follows the newest item, with a way back to the latest when scrolled up. Clicking an item sets the selection (D1) and the matching event is highlighted in the event viewer.
   Verify: clicking "Next step" appends items and the view follows; clicking a message opens its event in the inspector.
-  Status: implemented (`components/run/chat.tsx`: messages in bubbles, markers for steps, arrivals, silences and selections, clickable ones open the inspector; room filter applied; `MessageScroller` follows the newest entry and shows a scroll-to-end button). Server-rendered output checked; awaiting a manual check.
+  Status: implemented (`components/run/chat.tsx`: messages in bubbles, markers for steps, arrivals, silences and selections, clickable ones open the inspector; room filter applied; `MessageScroller` follows the newest entry and shows a scroll-to-end button). Checked by the user.
 
 ### Phase D — Agent panel
 
 - [ ] **D1. Agent selection and panel**
   Clicking an agent (avatar or name in the chat, or a member in a room card) sets an agent selection. The inspector shows its id, behavior and memory (from `run.scenario.agents`), message count and latest proposals. Read-only.
   Verify: selecting an agent shows its data; switching between an event and an agent replaces the content.
+  Status: implemented. Entry points: avatar and name in the chat, and an "Agent" link at the top of the inspector for any event. `agentSummary` in `lib/run-view.ts` (4 tests) feeds `AgentPanel`: behavior, memory and room badges, counts of messages, times selected and silent proposals, and the five latest proposals (clicking one opens its event). Not wired from the room cards, which are buttons themselves. Awaiting a manual check.
 
 ### Phase E — Transport
 

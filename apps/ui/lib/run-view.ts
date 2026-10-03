@@ -189,3 +189,82 @@ export function buildTimeline(
 
 	return items;
 }
+
+export type AgentProposal = {
+	eventId: string;
+	step: number;
+	type: "speak" | "stay_silent";
+	content: string | undefined;
+	urgency: number | undefined;
+	reasoning: string | undefined;
+	/** The scheduler picked this agent at that step. */
+	selected: boolean;
+};
+
+export type AgentSummary = {
+	agentId: string;
+	roomId: string | undefined;
+	behavior: string;
+	memory: string | undefined;
+	messageCount: number;
+	timesSelected: number;
+	speakProposals: number;
+	silentProposals: number;
+	/** Latest first, at most `RECENT_PROPOSALS`. */
+	recentProposals: AgentProposal[];
+};
+
+const RECENT_PROPOSALS = 5;
+
+/** What the run shows about one agent; undefined if the scenario has no such agent. */
+export function agentSummary(
+	run: RunRecord,
+	events: readonly AnyEvent[],
+	agentId: string,
+): AgentSummary | undefined {
+	const config = run.scenario.agents.find((agent) => agent.id === agentId);
+	if (config === undefined) return undefined;
+
+	const selectedSteps = new Set(
+		events
+			.filter(
+				(event) =>
+					event.type === "action.selected" && event.agentId === agentId,
+			)
+			.map((event) => event.step),
+	);
+
+	const proposals: AgentProposal[] = [];
+	let messageCount = 0;
+
+	for (const event of events) {
+		if (event.agentId !== agentId) continue;
+
+		if (event.type === "message.published") messageCount++;
+
+		if (event.type === "action.proposed") {
+			const { action } = event;
+			proposals.push({
+				eventId: event.id,
+				step: event.step,
+				type: action.type,
+				content: action.type === "speak" ? action.content : undefined,
+				urgency: action.type === "speak" ? action.urgency : undefined,
+				reasoning: action.reasoning,
+				selected: selectedSteps.has(event.step),
+			});
+		}
+	}
+
+	return {
+		agentId,
+		roomId: agentRooms(events).get(agentId),
+		behavior: config.behavior,
+		memory: config.memory,
+		messageCount,
+		timesSelected: selectedSteps.size,
+		speakProposals: proposals.filter((p) => p.type === "speak").length,
+		silentProposals: proposals.filter((p) => p.type === "stay_silent").length,
+		recentProposals: proposals.slice(-RECENT_PROPOSALS).reverse(),
+	};
+}

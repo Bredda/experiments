@@ -11,6 +11,7 @@ import type { RunRecord } from "@experiments/types/run";
 import { describe, expect, it } from "vitest";
 import {
 	agentRooms,
+	agentSummary,
 	buildTimeline,
 	eventRoomId,
 	roomSummaries,
@@ -263,5 +264,64 @@ describe("buildTimeline", () => {
 		const source = events.find((event) => event.type === "message.published");
 
 		expect(message).toMatchObject({ eventId: source?.id, content: "hi" });
+	});
+});
+
+describe("agentSummary", () => {
+	const events: AnyEvent[] = [
+		joined("alice", "main"),
+		joined("bob", "main"),
+		proposedSpeakWith("alice", "main", 1, 0.9),
+		proposedSpeakWith("bob", "main", 1, 0.2),
+		selected("alice", "main", 1),
+		published("alice", "main", 1),
+		proposedSilent("alice", 2),
+		proposedSilent("bob", 2),
+	];
+	const config = run([{ id: "main", members: ["alice", "bob"] }]);
+
+	it("counts what the agent said, was selected for and kept silent about", () => {
+		const alice = agentSummary(config, events, "alice");
+
+		expect(alice).toMatchObject({
+			agentId: "alice",
+			roomId: "main",
+			behavior: "mentioned",
+			messageCount: 1,
+			timesSelected: 1,
+			speakProposals: 1,
+			silentProposals: 1,
+		});
+		expect(agentSummary(config, events, "bob")).toMatchObject({
+			messageCount: 0,
+			timesSelected: 0,
+		});
+	});
+
+	it("lists proposals latest first and flags the one that won", () => {
+		const alice = agentSummary(config, events, "alice");
+
+		expect(
+			alice?.recentProposals.map((p) => [p.step, p.type, p.selected]),
+		).toEqual([
+			[2, "stay_silent", false],
+			[1, "speak", true],
+		]);
+		expect(alice?.recentProposals[1]).toMatchObject({ urgency: 0.9 });
+	});
+
+	it("limits the proposals it keeps", () => {
+		const many = Array.from({ length: 8 }, (_, i) =>
+			proposedSilent("alice", i + 1),
+		);
+
+		expect(
+			agentSummary(config, [joined("alice", "main"), ...many], "alice")
+				?.recentProposals,
+		).toHaveLength(5);
+	});
+
+	it("knows nothing about an agent outside the scenario", () => {
+		expect(agentSummary(config, events, "ghost")).toBeUndefined();
 	});
 });

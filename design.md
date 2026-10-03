@@ -34,7 +34,7 @@ agents observe → agents propose actions → scheduler selects → action execu
 
 Agents never mutate the simulation directly; intent is expressed as actions, and facts are recorded as events.
 
-A run advances one step at a time, on request. Each step is atomic: its events are persisted together once every agent has answered, and a failed step (for example an LLM error) leaves no trace and can be retried. The simulation is rebuilt from the stored scenario and events before each step, so the API holds no simulation state between requests.
+A run advances one step at a time, on request. Within a step, agents propose concurrently: they all observe the same history, so a step lasts as long as its slowest agent rather than the sum of them. Each step is atomic: its events are persisted together once every agent has answered, and a failed step (for example an LLM error) leaves no trace and can be retried. The simulation is rebuilt from the stored scenario and events before each step, so the API holds no simulation state between requests.
 
 ## 4. Time
 

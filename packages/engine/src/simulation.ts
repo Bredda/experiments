@@ -1,5 +1,5 @@
 import type { RunStore } from "@experiments/db";
-import { speakSchema } from "@experiments/types/actions";
+import { type ActionProposal, speakSchema } from "@experiments/types/actions";
 import {
 	type AnyEvent,
 	actionProposedSchema,
@@ -115,17 +115,31 @@ export class Simulation {
 		const candidates: Candidate[] = [];
 
 		// Agents propose simultaneously: all of them observe the history as it
-		// was at the start of the step, never each other's proposals.
+		// was at the start of the step, never each other's proposals. Their
+		// calls (slow for LLM-backed agents) therefore run concurrently.
 		const history = this.events.toList();
 
-		for (const agent of this.agents) {
-			const observation = agent.observe({
-				step: this.clock.step,
-				time: this.clock.now,
-				room: this.room.view(agent.id, history),
-			});
+		const results = await Promise.allSettled(
+			this.agents.map(async (agent) => {
+				const observation = agent.observe({
+					step: this.clock.step,
+					time: this.clock.now,
+					room: this.room.view(agent.id, history),
+				});
+				return await agent.propose(observation);
+			}),
+		);
 
-			const proposal = await agent.propose(observation);
+		// Calls already in flight are left to finish rather than cancelled, so a
+		// failed step still pays for them; the first failure in agent order wins.
+		const proposals: ActionProposal[] = [];
+		for (const result of results) {
+			if (result.status === "rejected") throw result.reason;
+			proposals.push(result.value);
+		}
+
+		for (const [index, agent] of this.agents.entries()) {
+			const proposal = proposals[index] as ActionProposal;
 
 			if (proposal.prompt !== undefined) {
 				stepEvents.push(

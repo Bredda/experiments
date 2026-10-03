@@ -1,7 +1,7 @@
 import z from "zod";
 import { memoryTypeSchema } from "./memory";
 
-export const AGENT_BEHAVIORS = ["mentioned", "silent"] as const;
+export const AGENT_BEHAVIORS = ["mentioned", "silent", "llm"] as const;
 export const agentBehaviorSchema = z.enum(AGENT_BEHAVIORS);
 export type AgentBehavior = (typeof AGENT_BEHAVIORS)[number];
 

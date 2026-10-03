@@ -18,6 +18,7 @@ Routes: `GET/POST /runs`, `GET /runs/:id`, `GET /runs/:id/events`, and probes un
 Conventions:
 
 - Request and response schemas come from `@experiments/types`: `schema.toJSONSchema()` for Fastify/OpenAPI (`{ target: "draft-7" }` for bodies), `schema.parse` for validation inside handlers. Do not hand-write a parallel JSON schema.
+- `src/index.ts` imports `@experiments/ai` for its side effect (registers the `llm` behavior). Keep that import.
 - Handlers call `@experiments/engine` and `@experiments/db`; they contain no simulation logic.
 - Add each new route group in `src/routes/index.ts` and give it `description` and `tags` so it shows up in `/reference`.
 
@@ -41,6 +42,7 @@ Conventions:
 
 - Use the `@/` alias for app-internal imports.
 - Fetch data in server components through `lib/api.ts`; the API base URL is `NEXT_PUBLIC_API_URL` (default `http://localhost:8080`).
+- Runs are launched only from the create-run form, which builds a `ScenarioConfig` and `POST`s it to `/runs`.
 - Types and Zod schemas come from `@experiments/types`. Reuse its enums (`AGENT_BEHAVIORS`, `MEMORY_KINDS`, `schedulerTypeSchema`) instead of repeating literals. The create-run form keeps label maps keyed by those types, so a new member fails type-checking until labelled.
 - Add shadcn primitives with the shadcn CLI (config in `components.json`) rather than writing them by hand.
 - The run page is constrained to the viewport height with independent scroll areas for timeline and inspector; keep that layout when editing it.

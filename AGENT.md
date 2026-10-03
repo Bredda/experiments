@@ -23,7 +23,6 @@ packages/db         SQLite `RunStore` (runs, scenarios, events)
 packages/engine     Simulation domain and runtime
 packages/ai         LLM-backed agent behaviors
 packages/biome-config, packages/typescript-config   shared tooling config
-scenarios/          Declarative experiment definitions (YAML)
 ```
 
 `runs/` and `*.db` are local data and gitignored. Do not commit them.
@@ -36,7 +35,6 @@ pnpm lint          # biome check
 pnpm format        # biome check --write
 pnpm check-types   # turbo: tsc --noEmit in every package (ui runs next typegen first)
 pnpm test          # turbo test
-pnpm --filter @experiments/engine execute   # CLI: create a run from mentioned.yml
 ```
 
 API docs are served at `/reference` (Scalar); health probes are under `/healthz`.
@@ -52,7 +50,7 @@ Local setup: copy `.env.example` to `.env`. `@experiments/settings` validates en
 Allowed imports between workspaces:
 
 ```text
-apps/api        → engine, db, settings, types
+apps/api        → engine, ai, db, settings, types
 apps/ui         → settings, types   (reaches the API over HTTP only)
 packages/ai     → engine, settings, types
 packages/engine → db, settings, types

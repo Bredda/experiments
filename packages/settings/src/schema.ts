@@ -9,7 +9,6 @@ export const configSchema = z.object({
 		.string()
 		.default("8080")
 		.transform((value) => Number(value)),
-	SCENARIOS_DIRECTORY: z.string().default("./scenarios"),
 	API_TRUSTED_ORIGIN: z
 		.string()
 		.default(

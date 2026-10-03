@@ -15,6 +15,7 @@
 		"@experiments/settings": "workspace:*",
 		"@experiments/engine": "workspace:*",
 		"@experiments/db": "workspace:*",
+		"@experiments/ai": "workspace:*",
 		"@scalar/fastify-api-reference": "^1.68.0",
 		"bullmq": "^6.3.4",
 		"fastify": "^5.12.3",

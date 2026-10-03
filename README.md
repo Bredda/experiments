@@ -28,7 +28,6 @@ API reference: http://localhost:8080/reference
 | `packages/db` | SQLite run store |
 | `packages/engine` | Simulation engine |
 | `packages/ai` | LLM-backed agent behaviors |
-| `scenarios/` | Declarative experiment definitions (YAML) |
 
 ## Scripts
 

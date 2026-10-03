@@ -10,7 +10,7 @@ Each component has a closed set declared in `packages/types` and an implementati
 1. `packages/types/src/scenario.ts`: add the name to `AGENT_BEHAVIORS`.
 2. Create `packages/engine/src/agents/<name>Agent.ts` with a class extending `Agent`. `propose` returns an `ActionProposal` (sync or async) built with `speak(...)` / `staySilent(...)` / `actionProposal(...)` from `@experiments/types/actions`. Use `this.memoryType` and `getMemory` if it needs history. Keep it deterministic: no `Math.random()`, no wall-clock reads.
 3. Export it in `agents/index.ts` and register a factory in `agents/registry.ts`.
-4. LLM or network-backed behavior: put it in `packages/ai` and register through `agentBehaviorRegistry.register(...)` in its `index.ts` instead.
+4. LLM or network-backed behavior: put it in `packages/ai` and register through `agentBehaviorRegistry.register(...)` in its `index.ts` instead. `apps/api` imports `@experiments/ai` for that side effect.
 5. UI: add a label to `BEHAVIOR_LABELS` in `apps/ui/components/create-run/schemas.ts` (type-check fails until you do).
 
 ## Scheduler
@@ -29,6 +29,5 @@ Each component has a closed set declared in `packages/types` and an implementati
 
 ## Finish
 
-- Add or update a scenario in `scenarios/` only if the user asked for one.
 - Run `pnpm lint` and `pnpm check-types`.
 - Same scenario + seed must still give the same trajectory. Add a focused test if a test runner exists.

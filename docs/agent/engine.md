@@ -5,7 +5,7 @@ Code: `packages/engine/src`, schemas in `packages/types/src`, persistence in `pa
 ## Flow
 
 ```text
-scenario YAML ──loadScenario (Zod)──▶ ScenarioConfig
+POST /runs body ──scenarioConfigSchema.parse──▶ ScenarioConfig
 ScenarioConfig ──buildRun──▶ Simulation (Room, Agents, Scheduler, RunConfig)
 createRun: store.createRun(...) then simulation.setup(store)
 ```
@@ -48,11 +48,11 @@ Actions (`packages/types/src/actions.ts`): `speak` (with `urgency`, `relevance`,
 | Scheduler | `schedulerTypeSchema` in `types/src/scenario.ts` | `scheduler/registry.ts` (`schedulers` record) |
 | Memory | `MEMORY_KINDS` in `types/src/memory.ts` | `memory/index.ts` (`registerMemory`) |
 
-The `llm` behavior is registered by a side effect of importing `@experiments/ai`, which the engine cannot import. A process that must run `llm` agents has to import that package itself.
+The `llm` behavior is registered by a side effect of importing `@experiments/ai`, which the engine cannot import. `apps/api` does that import; any other entry point that must run `llm` agents has to do the same.
 
 ## Scenarios
 
-Scenarios live in `scenarios/*.yml` and are validated by `scenarioConfigSchema` (strict: unknown keys are rejected; rooms may only reference declared agents; seed is `0-9A-Z` only). Directory is `SCENARIOS_DIRECTORY`.
+A scenario is a `ScenarioConfig` (`scenarioConfigSchema`, strict: unknown keys are rejected; rooms may only reference declared agents; seed is `0-9A-Z` only). It is not read from files: the UI builds it and sends it to `POST /runs`, and the run stores it as JSON.
 
 ## Persistence
 

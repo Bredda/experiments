@@ -62,7 +62,7 @@ Actions are discriminated by `type` too: `speak` (with `urgency`, `relevance`, `
 
 An agent exposes `observe` and `propose`. It receives an `Observation` (agent id, step, time, and a `RoomView`) rather than the whole world. `Room` owns membership and builds the view; visibility rules live there, so they can change without changing the agent contract. Today every member sees the full public event history.
 
-An agent's behavior is pluggable (`mentioned`, `silent`, plus LLM-backed ones from `packages/ai`), as is its memory (`sliding_window`), which turns a room view into a memory slice for prompting.
+An agent's behavior is pluggable (`mentioned`, `silent`, `llm`), as is its memory (`sliding_window`), which turns a room view into a memory slice for prompting.
 
 ## 7. Scheduling
 
@@ -70,22 +70,20 @@ The scheduler is separate from agents so arbitration policies are interchangeabl
 
 ## 8. Scenarios
 
-An experiment is declared in YAML and validated by `scenarioConfigSchema` (strict):
+An experiment is described by a `ScenarioConfig`, validated by `scenarioConfigSchema` (strict). Scenarios are not files: they are built in the UI's create-run form and sent to `POST /runs`.
 
-```yaml
-name: basic-room
-seed: 42
-agents:
-  - id: alice
-    behavior: mentioned
-  - id: bob
-    behavior: mentioned
-rooms:
-  - id: main
-    members: [alice, bob]
-scheduler:
-  type: highest_urgency
-steps: 10
+```json
+{
+  "name": "basic-room",
+  "seed": "42",
+  "agents": [
+    { "id": "alice", "behavior": "mentioned" },
+    { "id": "bob", "behavior": "mentioned" }
+  ],
+  "rooms": [{ "id": "main", "members": ["alice", "bob"] }],
+  "scheduler": { "type": "highest_urgency" },
+  "steps": 10
+}
 ```
 
 Seeds are alphanumeric (`0-9`, `A-Z`). The engine currently supports exactly one room per scenario.

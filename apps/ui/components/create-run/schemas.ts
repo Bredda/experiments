@@ -59,4 +59,5 @@ export const SCHEDULER_LABELS: Record<SchedulerType, string> = {
 export const BEHAVIOR_LABELS: Record<AgentBehavior, string> = {
 	mentioned: "Mentioned",
 	silent: "Silent",
+	llm: "LLM",
 };

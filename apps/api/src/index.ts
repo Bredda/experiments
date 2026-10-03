@@ -1,3 +1,4 @@
+import "@experiments/ai"; // registers the "llm" agent behavior as a side effect
 import { env } from "@experiments/settings";
 import Fastify from "fastify";
 import { errorHandler } from "./error-handler";

@@ -31,9 +31,10 @@ Chore, on branch `chore/containerization`. Not tied to a roadmap axis.
 
 ### Phase A — Images and compose
 
-- [ ] **A1. API image and runtime config**
+- [x] **A1. API image and runtime config**
   `apps/api/Dockerfile` (multi-stage, Node 24, pnpm from `packageManager`, production dependencies of `api` and its workspace dependencies, non-root user, `/data` volume, healthcheck on `/healthz/live`), a `start` script in `apps/api/package.json`, `tsx` moved to dependencies, root `.dockerignore`. The image sets `ENV=production`, `API_HOST=0.0.0.0` and `DB_PATH=/data/simulation.db`.
   Verify: `docker build` succeeds; the container starts with a valid `ANTHROPIC_API_KEY`, `/healthz/live` answers, and a run created through the api survives a container restart with the same volume.
+  Status: done and checked locally: healthy container, run created, container removed and recreated on the same volume, the run was still there and stepped to completion. The image is about 510 MB. `docker run --env-file .env` keeps the quotes of a value like `DB_PATH="..."` (dotenv strips them), so it overrides the image's defaults with a broken path; pass only the variables you need, or use compose where `environment` wins over `env_file`.
 
 - [ ] **A2. UI image**
   `output: "standalone"` and the tracing root in `apps/ui/next.config.ts`, `apps/ui/Dockerfile` (build argument `NEXT_PUBLIC_API_URL`, non-root user, standalone server on port 3000), and `lib/fetch.ts` reading `API_URL` on the server (D5).

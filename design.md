@@ -107,6 +107,7 @@ GET  /runs
 POST /runs              create a run from a scenario
 GET  /runs/:id
 GET  /runs/:id/events
+GET  /runs/:id/steps/:step/observations   what each agent observed at that step
 POST /runs/:id/steps/next   advance one step; 409 if completed or busy
 GET  /healthz/{health,live,ready}
 ```
@@ -119,7 +120,7 @@ The run page has three roles, constrained to the viewport height with independen
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
-│ name · status · seed · Step n / N          [ Next step ] [ Play ] │
+│ name · seed     status · Step n / N · cursor · Live  [ Next ] [ Play ] │
 ├───────────┬──────────────────────────────────────┬───────────────┤
 │ Event     │ room cards (filter)                  │ Inspector     │
 │ viewer    │──────────────────────────────────────│ (event or     │
@@ -127,4 +128,4 @@ The run page has three roles, constrained to the viewport height with independen
 └───────────┴──────────────────────────────────────┴───────────────┘
 ```
 
-The left panel is the raw event log, the centre is a narrative reading of the run (messages, steps, silences, who was selected), and the right panel shows the detail of whatever is selected; it opens on selection and closes on demand. The page keeps the run and its events in client state, appends what each step returns, and can advance step by step or automatically until the run completes.
+The left panel is the raw event log, the centre is a narrative reading of the run (messages, steps, silences, who was selected), and the right panel shows the detail of whatever is selected; it opens on selection and closes on demand. The page keeps the run and its events in client state, appends what each step returns, and can advance step by step or automatically until the run completes. A time cursor in the control bar moves every panel to any played step without interrupting execution, and the agent detail shows what that agent observed at the step, rebuilt by the engine through `Simulation.observationsAt`. The event viewer can be filtered by agent and event type.

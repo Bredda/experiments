@@ -1,10 +1,10 @@
 # Todo
 
-Working plan for the feature in progress, and the backlog. Strategy and horizons live in [roadmap.md](roadmap.md); this file is the executable breakdown.
+Working plan for the feature in progress. Strategy and horizons live in [roadmap.md](roadmap.md), unscheduled ideas in [backlog.md](backlog.md); this file is the executable breakdown.
 
 ## How to use this file
 
-- Work on **Current plan** top to bottom, one commit per phase. Do not start items from **Backlog** unless asked.
+- Work on **Current plan** top to bottom, one commit per phase. Do not start items from [backlog.md](backlog.md) unless asked.
 - A task is done only when its **Verify** line passes. Tick the box in the same change.
 - Tasks marked `(needs decision)` depend on an entry in **Decisions**. Confirm it with the user before implementing; if it was not answered, use the recommendation and say so.
 - Do not tick a task you could not verify; say what is missing instead.
@@ -15,19 +15,6 @@ Working plan for the feature in progress, and the backlog. Strategy and horizons
 
 ## Current plan
 
-None for now. Next candidates: per-run cost (axis 7) and the agents and memory axis (3).
+None for now. Next candidates, in the roadmap's suggested order: re-run from a run and side-by-side comparison (axis 7, slices 7.1 and 7.2), then agents and memory (axis 3).
 
 A plan in this file has: a goal, a short "where we are", **Decisions** (each with a recommendation, confirmed by the user before the tasks that depend on it), tasks grouped in phases (one commit per phase), each task with the files it touches and a **Verify** line, and a "Done when" block.
-
----
-
-## Backlog
-
-Unscheduled, not part of the current plan.
-
-- Test the `llm` agent prompt without calling the model (`packages/ai` has no test runner); the two-system-message bug fixed in phase E would have been caught by one.
-- Make the ui image configurable at runtime: a proxy route in the ui forwards browser calls to `API_URL`, so no api URL is baked at build time and CORS between ui and api disappears.
-- Rewrite the event log viewer (`components/run/events.tsx`, `event-panel.tsx`): clearer step grouping, readable labels for every event type.
-- Remove startup `console.log` calls in `apps/api/src/paths.ts` and `apps/api/src/plugins/cors.ts` in favor of the Fastify logger.
-- `components/run/header.tsx` (`RunHeader`) is no longer used anywhere; delete it or reuse it.
-- Support more than one room per scenario (the engine currently throws unless there is exactly one).

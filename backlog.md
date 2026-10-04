@@ -27,6 +27,8 @@ Each line says what, and why it came up. Items marked *(from todo)* were the pre
 
 ## Running and scenarios
 
+- Edit the scenario of a fork: scheduler, seed and steps first (they do not touch the copied history), agent behavior and memory later. The fork form only asks for a name and a purpose today, so a fork re-samples but does not yet "change one parameter". The fork then stops being reproducible from its own scenario alone, which `docs/agent/engine.md` has to say.
+- Delete a run: refused while it has forks (`RunStore.deleteRun`); decide whether to cascade, reparent or only archive before adding a delete route.
 - Run to completion on the server. Autoplay is a client loop, so closing the tab stops the run; a server-side "run to step N" (background job, with progress) would allow long LLM runs and batch use. Related to the single-step-at-a-time guard in `stepRun`.
 - Import and export a scenario as JSON in the create-run form, plus a few templates. Scenarios are only built in the UI today.
 - A random-seed button and clearer seed validation in the form (seeds are `0-9A-Z` only).

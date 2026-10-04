@@ -1,2 +1,8 @@
 export { buildRun, loadSimulation } from "./factory";
-export { createRun, getObservations, stepRun } from "./runner";
+export {
+	createRun,
+	forkRun,
+	getForkTree,
+	getObservations,
+	stepRun,
+} from "./runner";

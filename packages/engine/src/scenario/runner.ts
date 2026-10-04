@@ -1,9 +1,19 @@
 import type { RunStore } from "@experiments/db";
 import type { Observation } from "@experiments/types";
-import type { RunId } from "@experiments/types/ids";
-import type { EventRecord, RunRecord } from "@experiments/types/run";
+import { newRunId, type RunId } from "@experiments/types/ids";
+import type {
+	EventRecord,
+	ForkTree,
+	RunRecord,
+	RunStatus,
+} from "@experiments/types/run";
 import type { ScenarioConfig } from "@experiments/types/scenario";
-import { RunBusyError, RunCompletedError } from "../errors";
+import {
+	RunBusyError,
+	RunCompletedError,
+	RunNotFoundError,
+	StepNotFoundError,
+} from "../errors";
 import { buildRun, loadSimulation } from "./factory";
 
 /**
@@ -31,6 +41,69 @@ export function createRun(
 	simulation.setup();
 
 	return run;
+}
+
+/**
+ * Creates a run that starts with a copy of the parent's history up to `step`
+ * (0 keeps only the arrivals) and then diverges: it has the parent's scenario
+ * and seed, so it is stepped like any other run. The parent is not touched.
+ * With deterministic agents the fork carries on exactly like its parent; with
+ * LLM agents it is a new sample from `step` on.
+ */
+export function forkRun(
+	store: RunStore,
+	runId: RunId,
+	options: { step: number; name: string; purpose?: string | null },
+): RunRecord {
+	const parent = store.getRun(runId);
+
+	if (parent === undefined) {
+		throw new RunNotFoundError(runId);
+	}
+
+	// Events are stored in order, so the last one is at the latest step played.
+	const playedSteps = store.listEvents(runId).at(-1)?.step ?? 0;
+
+	if (
+		!Number.isInteger(options.step) ||
+		options.step < 0 ||
+		options.step > playedSteps
+	) {
+		throw new StepNotFoundError(runId, options.step);
+	}
+
+	// Same derivation as stepRun: the status follows where the clock is.
+	const status: RunStatus =
+		options.step >= parent.scenario.steps
+			? "completed"
+			: options.step === 0
+				? "created"
+				: "running";
+
+	return store.createFork({
+		runId: newRunId(),
+		parentRunId: runId,
+		step: options.step,
+		purpose: options.purpose ?? null,
+		name: options.name,
+		seed: parent.seed,
+		scenario: { ...parent.scenario, name: options.name },
+		status,
+	});
+}
+
+/**
+ * The fork tree that contains a run: its ancestors, siblings and descendants,
+ * with the root.
+ */
+export function getForkTree(store: RunStore, runId: RunId): ForkTree {
+	const tree = store.getForkTree(runId);
+
+	if (tree === undefined) {
+		throw new RunNotFoundError(runId);
+	}
+
+	return tree;
 }
 
 // One step at a time per run: LLM-backed steps are slow enough for a second

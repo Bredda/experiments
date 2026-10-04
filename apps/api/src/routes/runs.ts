@@ -1,8 +1,16 @@
-import { createRun, getObservations, stepRun } from "@experiments/engine";
+import {
+	createRun,
+	forkRun,
+	getForkTree,
+	getObservations,
+	stepRun,
+} from "@experiments/engine";
 import { observationSchema } from "@experiments/types";
 import { runIdSchema } from "@experiments/types/ids";
 import {
 	eventRecordSchema,
+	forkRunRequestSchema,
+	forkTreeSchema,
 	runRecordSchema,
 	stepResultSchema,
 } from "@experiments/types/run";
@@ -78,6 +86,54 @@ const runsRoutes: FastifyPluginAsync = async (app) => {
 				throw app.httpErrors.notFound(`Run ${request.params.id} not found`);
 			}
 			return reply.code(200).send(run);
+		},
+	);
+
+	app.post<{ Params: { id: string }; Body: unknown }>(
+		"/:id/fork",
+		{
+			schema: {
+				description:
+					"Fork a run: create a new run that starts with a copy of this run's events up to a step (0 keeps only the arrivals), with the same scenario and seed, then diverges. The fork records its parent, the step and an optional purpose. 404 if the run does not exist or the step was not played.",
+				tags: ["runs"],
+				params: idParams,
+				body: forkRunRequestSchema.toJSONSchema({
+					target: "draft-7",
+					io: "input",
+				}),
+				response: {
+					201: runRecordSchema.toJSONSchema(),
+					404: errorResponse,
+				},
+			},
+		},
+		async (request, reply) => {
+			const run = forkRun(
+				app.store,
+				runIdSchema.parse(request.params.id),
+				forkRunRequestSchema.parse(request.body),
+			);
+			return reply.code(201).send(run);
+		},
+	);
+
+	app.get<{ Params: { id: string } }>(
+		"/:id/tree",
+		{
+			schema: {
+				description:
+					"The fork tree that contains a run: its ancestors, siblings and descendants, oldest first, with the id of the root. A run that was never forked and has no forks is a tree of one.",
+				tags: ["runs"],
+				params: idParams,
+				response: {
+					200: forkTreeSchema.toJSONSchema(),
+					404: errorResponse,
+				},
+			},
+		},
+		async (request, reply) => {
+			const tree = getForkTree(app.store, runIdSchema.parse(request.params.id));
+			return reply.code(200).send(tree);
 		},
 	);
 

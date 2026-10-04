@@ -1,4 +1,5 @@
 import type { RunStore } from "@experiments/db";
+import type { Observation } from "@experiments/types";
 import { type ActionProposal, speakSchema } from "@experiments/types/actions";
 import {
 	type AnyEvent,
@@ -12,6 +13,7 @@ import { newEventId, type RunId } from "@experiments/types/ids";
 import { type Candidate, candidateSchema } from "@experiments/types/scheduler";
 import type { Agent } from "./agent";
 import { SimulationClock } from "./clock";
+import { StepNotFoundError } from "./errors";
 import { EventLog } from "./eventLog";
 import type { Room } from "./room";
 import type { RunConfig } from "./runConfig";
@@ -90,6 +92,36 @@ export class Simulation {
 		this.clock.seek(lastStep);
 	}
 
+	/**
+	 * What each agent observed when it proposed at `step`: the history as it
+	 * stood at the start of that step. Built by the same code as a real step,
+	 * so a replay shows exactly what the agents were given.
+	 */
+	observationsAt(step: number): Observation[] {
+		if (!Number.isInteger(step) || step < 1 || step > this.clock.step) {
+			throw new StepNotFoundError(this.runId, step);
+		}
+
+		const history = this.events.toList().filter((event) => event.step < step);
+
+		return this.agents.map((agent) =>
+			this.#observe(agent, step, this.clock.timeAt(step), history),
+		);
+	}
+
+	#observe(
+		agent: Agent,
+		step: number,
+		time: string,
+		history: readonly AnyEvent[],
+	): Observation {
+		return agent.observe({
+			step,
+			time,
+			room: this.room.view(agent.id, history),
+		});
+	}
+
 	exportEvents(path: string): void {
 		this.events.writeJsonl(path);
 	}
@@ -121,11 +153,12 @@ export class Simulation {
 
 		const results = await Promise.allSettled(
 			this.agents.map(async (agent) => {
-				const observation = agent.observe({
-					step: this.clock.step,
-					time: this.clock.now,
-					room: this.room.view(agent.id, history),
-				});
+				const observation = this.#observe(
+					agent,
+					this.clock.step,
+					this.clock.now,
+					history,
+				);
 				return await agent.propose(observation);
 			}),
 		);

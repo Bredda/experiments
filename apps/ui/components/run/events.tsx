@@ -1,7 +1,16 @@
 import type { AnyEvent } from "@experiments/types/events";
-import { ArrowRight } from "@hugeicons/core-free-icons";
+import { ArrowRight, FilterIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
 	Item,
 	ItemActions,
@@ -9,7 +18,15 @@ import {
 	ItemTitle,
 } from "@/components/ui/item";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	EVENT_TYPES,
+	type EventFilter,
+	type EventType,
+	filterEvents,
+	NO_FILTER,
+} from "@/lib/run-view";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
 import { FieldSeparator } from "../ui/field";
 
 function formatTime(timestamp: string) {
@@ -60,18 +77,107 @@ function StepMetadatas({ events }: { events: AnyEvent[] }) {
 	);
 }
 
+function toggled<T>(set: ReadonlySet<T>, value: T): Set<T> {
+	const next = new Set(set);
+	if (!next.delete(value)) next.add(value);
+	return next;
+}
+
+function FilterMenu({
+	agentIds,
+	filter,
+	onFilter,
+}: {
+	agentIds: string[];
+	filter: EventFilter;
+	onFilter: (filter: EventFilter) => void;
+}) {
+	const active = filter.agentIds.size + filter.types.size;
+
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger
+				render={
+					<Button
+						variant={active > 0 ? "secondary" : "ghost"}
+						size="icon-sm"
+						aria-label="Filter events"
+					/>
+				}
+			>
+				<HugeiconsIcon icon={FilterIcon} />
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="start">
+				<DropdownMenuGroup>
+					<DropdownMenuLabel>Agents</DropdownMenuLabel>
+					{agentIds.map((agentId) => (
+						<DropdownMenuCheckboxItem
+							key={agentId}
+							checked={filter.agentIds.has(agentId)}
+							onCheckedChange={() =>
+								onFilter({
+									...filter,
+									agentIds: toggled(filter.agentIds, agentId),
+								})
+							}
+						>
+							{agentId}
+						</DropdownMenuCheckboxItem>
+					))}
+				</DropdownMenuGroup>
+				<DropdownMenuSeparator />
+				<DropdownMenuGroup>
+					<DropdownMenuLabel>Event types</DropdownMenuLabel>
+					{EVENT_TYPES.map((type: EventType) => (
+						<DropdownMenuCheckboxItem
+							key={type}
+							checked={filter.types.has(type)}
+							onCheckedChange={() =>
+								onFilter({ ...filter, types: toggled(filter.types, type) })
+							}
+						>
+							{type}
+						</DropdownMenuCheckboxItem>
+					))}
+				</DropdownMenuGroup>
+				{active > 0 && (
+					<>
+						<DropdownMenuSeparator />
+						<DropdownMenuCheckboxItem
+							checked={false}
+							onCheckedChange={() => onFilter(NO_FILTER)}
+						>
+							Reset filters
+						</DropdownMenuCheckboxItem>
+					</>
+				)}
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
+
 export function RunEvents({
 	events,
+	agentIds,
+	filter,
+	onFilter,
 	selected,
 	onSelect,
 }: {
 	events: AnyEvent[];
+	agentIds: string[];
+	filter: EventFilter;
+	onFilter: (filter: EventFilter) => void;
 	selected?: string | null;
 	onSelect?: (eventId: string) => void;
 }) {
-	const groupedEvents = groupByStep(
-		events.filter((event) => event.type !== "agent.prompt_built"),
-	);
+	// Prompts are long and have their own view: they only show when asked for.
+	const filtered = filterEvents(events, filter);
+	const shown =
+		filter.types.size === 0
+			? filtered.filter((event) => event.type !== "agent.prompt_built")
+			: filtered;
+	const groupedEvents = groupByStep(shown);
 	// biome-ignore lint/suspicious/noExplicitAny: accepts any anchor/button click event
 	const handleSelected = (e: any, eventId: string) => {
 		e.preventDefault();
@@ -80,9 +186,12 @@ export function RunEvents({
 	return (
 		<div className="flex h-full min-h-0 flex-col">
 			<div className="flex h-10 shrink-0 items-center justify-between border-b px-4">
-				<span className="font-medium text-sm">Events</span>
+				<span className="flex items-center gap-1 font-medium text-sm">
+					<FilterMenu agentIds={agentIds} filter={filter} onFilter={onFilter} />
+					Events
+				</span>
 				<span className="text-muted-foreground text-xs">
-					{events.length} total
+					{shown.length} / {events.length}
 				</span>
 			</div>
 			<ScrollArea className="min-h-0 flex-1">

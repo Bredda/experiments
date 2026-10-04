@@ -15,7 +15,7 @@ Working plan for the feature in progress, and the backlog. Strategy and horizons
 
 ## Current plan
 
-None for now. Containerization is written and verified locally; what still needs GitHub to be proven is listed in the pull request that carries it (first CI run, release PR, first image publication). Next candidates: the time cursor (roadmap axis 2) and per-run cost (axis 7).
+None for now. Next candidates: per-run cost (axis 7) and the agents and memory axis (3).
 
 A plan in this file has: a goal, a short "where we are", **Decisions** (each with a recommendation, confirmed by the user before the tasks that depend on it), tasks grouped in phases (one commit per phase), each task with the files it touches and a **Verify** line, and a "Done when" block.
 

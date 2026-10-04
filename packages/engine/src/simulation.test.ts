@@ -10,10 +10,15 @@ import type { ScenarioConfig } from "@experiments/types/scenario";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Agent } from "./agent";
 import { MentionedAgent } from "./agents";
-import { RunBusyError, RunCompletedError, RunNotFoundError } from "./errors";
+import {
+	RunBusyError,
+	RunCompletedError,
+	RunNotFoundError,
+	StepNotFoundError,
+} from "./errors";
 import { Room } from "./room";
 import { RunConfig } from "./runConfig";
-import { buildRun, createRun, stepRun } from "./scenario";
+import { buildRun, createRun, getObservations, stepRun } from "./scenario";
 import { HighestUrgencyScheduler } from "./scheduler";
 import { Simulation } from "./simulation";
 
@@ -346,5 +351,109 @@ describe("Simulation.step", () => {
 			expect(store.listEvents(runId)).toHaveLength(stored);
 			expect(simulation.clock.step).toBe(0);
 		});
+	});
+});
+
+describe("getObservations", () => {
+	it("gives what the agents were handed during the real steps", async () => {
+		const runId = "33333333-3333-4333-8333-333333333333" as RunId;
+		const seen: unknown[] = [];
+
+		class Recorder extends Agent {
+			propose(observation: Parameters<Agent["propose"]>[0]): ActionProposal {
+				seen.push(observation);
+				return actionProposal({
+					action: speak({
+						agentId: this.id,
+						roomId: this.roomId,
+						content: `from ${this.id}`,
+					}),
+				});
+			}
+		}
+
+		const room = new Room({ id: "main" as never, name: "main" });
+		const simulation = new Simulation({
+			runId,
+			room,
+			agents: [
+				new Recorder("a" as never, "a", room.id),
+				new Recorder("b" as never, "b", room.id),
+			],
+			scheduler: new HighestUrgencyScheduler(),
+			config: new RunConfig({ runId, seed: "ABC123" }),
+		});
+		simulation.setup();
+		for (let i = 0; i < 3; i++) await simulation.step();
+
+		// Two agents per step, in agent order.
+		for (const step of [1, 2, 3]) {
+			expect(simulation.observationsAt(step)).toEqual(
+				seen.slice((step - 1) * 2, step * 2),
+			);
+		}
+	});
+
+	it("rebuilds the observations of a stored run, silent steps included", async () => {
+		const { runId } = createRun(store, scenario({ steps: 4 }));
+		for (let i = 0; i < 4; i++) await stepRun(store, runId);
+
+		const silent = [1, 2, 3, 4].filter(
+			(step) =>
+				!storedEvents(runId).some(
+					(event) => event.type === "message.published" && event.step === step,
+				),
+		);
+		expect(silent.length).toBeGreaterThan(0);
+
+		for (const step of [1, 2, 3, 4]) {
+			const observations = getObservations(store, runId, step);
+			expect(observations.map((o) => o.agentId)).toEqual([
+				"alice",
+				"bob",
+				"charlie",
+			]);
+			for (const observation of observations) {
+				expect(observation.step).toBe(step);
+				expect(
+					observation.room.visibleEvents.every((event) => event.step < step),
+				).toBe(true);
+			}
+		}
+	});
+
+	it("shows only the arrivals at step 1 and the earlier steps afterwards", async () => {
+		const { runId } = createRun(store, scenario({ steps: 2 }));
+		await stepRun(store, runId);
+		await stepRun(store, runId);
+
+		const first = getObservations(store, runId, 1)[0];
+		expect(first?.room.visibleEvents.map((e) => e.type)).toEqual([
+			"agent.joined",
+			"agent.joined",
+			"agent.joined",
+		]);
+		expect(first?.time).toBe("2026-01-01T00:00:01.000Z");
+
+		const second = getObservations(store, runId, 2)[0];
+		expect(second?.room.visibleEvents.some((e) => e.step === 1)).toBe(true);
+	});
+
+	it("rejects a step that was not played, and an unknown run", async () => {
+		const { runId } = createRun(store, scenario({ steps: 3 }));
+		await stepRun(store, runId);
+
+		for (const step of [0, 2, -1, 1.5]) {
+			expect(() => getObservations(store, runId, step)).toThrow(
+				StepNotFoundError,
+			);
+		}
+		expect(() =>
+			getObservations(
+				store,
+				"44444444-4444-4444-8444-444444444444" as RunId,
+				1,
+			),
+		).toThrow(RunNotFoundError);
 	});
 });

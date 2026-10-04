@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { observationSchema } from "@experiments/types";
 import {
 	type AnyEvent,
 	actionProposedSchema,
@@ -13,7 +14,13 @@ import {
 	agentRooms,
 	agentSummary,
 	buildTimeline,
+	EVENT_TYPES,
 	eventRoomId,
+	eventsUntil,
+	filterEvents,
+	lastStep,
+	NO_FILTER,
+	observationSummary,
 	roomSummaries,
 } from "./run-view";
 
@@ -323,5 +330,135 @@ describe("agentSummary", () => {
 
 	it("knows nothing about an agent outside the scenario", () => {
 		expect(agentSummary(config, events, "ghost")).toBeUndefined();
+	});
+});
+
+describe("eventsUntil", () => {
+	const events: AnyEvent[] = [
+		joined("alice", "main"),
+		proposedSilent("alice", 1),
+		proposedSpeak("alice", "main", 2),
+		published("alice", "main", 2),
+		proposedSilent("alice", 3),
+	];
+
+	it("keeps only the arrivals at step 0", () => {
+		expect(eventsUntil(events, 0)).toEqual([events[0]]);
+	});
+
+	it("keeps every event up to and including the step", () => {
+		expect(eventsUntil(events, 2)).toEqual(events.slice(0, 4));
+	});
+
+	it("keeps silent steps, they are part of the trajectory", () => {
+		expect(eventsUntil(events, 1)).toEqual(events.slice(0, 2));
+		expect(lastStep(eventsUntil(events, 1))).toBe(1);
+	});
+
+	it("returns everything past the last step", () => {
+		expect(eventsUntil(events, 99)).toEqual(events);
+	});
+});
+
+describe("observationSummary", () => {
+	const history: AnyEvent[] = [
+		joined("alice", "main"),
+		joined("bob", "main"),
+		proposedSpeak("alice", "main", 1),
+		proposedSilent("bob", 1),
+		published("alice", "main", 1),
+		proposedSilent("alice", 2),
+	];
+	const observation = (agentId: string, step: number) =>
+		observationSchema.parse({
+			agentId,
+			step,
+			time: TIME,
+			room: {
+				roomId: "main",
+				members: ["alice", "bob"],
+				visibleEvents: history.filter((event) => event.step < step),
+			},
+		});
+
+	it("lists the messages visible at that step and the agent's own earlier proposals", () => {
+		const summary = observationSummary(observation("alice", 3), history);
+
+		expect(summary.messages.map((m) => m.agentId)).toEqual(["alice"]);
+		expect(summary.earlierProposals).toBe(2);
+		expect(summary.members).toEqual(["alice", "bob"]);
+	});
+
+	it("shows an empty room at the first step", () => {
+		const summary = observationSummary(observation("bob", 1), history);
+
+		expect(summary.messages).toEqual([]);
+		expect(summary.earlierProposals).toBe(0);
+	});
+
+	it("points at the prompt recorded for that agent and step, if any", () => {
+		const built = prompt("alice", 3);
+		const events = [...history, built, prompt("bob", 3)];
+
+		expect(
+			observationSummary(observation("alice", 3), events).promptEventId,
+		).toBe(built.id);
+		expect(
+			observationSummary(observation("alice", 2), events).promptEventId,
+		).toBeUndefined();
+	});
+});
+
+describe("filterEvents", () => {
+	const events: AnyEvent[] = [
+		joined("alice", "main"),
+		joined("bob", "main"),
+		proposedSpeak("alice", "main", 1),
+		proposedSilent("bob", 1),
+		published("alice", "main", 1),
+	];
+
+	it("keeps everything when no filter is set", () => {
+		expect(filterEvents(events, NO_FILTER)).toEqual(events);
+	});
+
+	it("keeps the events of the chosen agents", () => {
+		const result = filterEvents(events, {
+			...NO_FILTER,
+			agentIds: new Set(["bob"]),
+		});
+		expect(result.map((e) => e.agentId)).toEqual(["bob", "bob"]);
+	});
+
+	it("keeps the chosen types, several at once", () => {
+		const result = filterEvents(events, {
+			...NO_FILTER,
+			types: new Set(["agent.joined", "message.published"] as const),
+		});
+		expect(result.map((e) => e.type)).toEqual([
+			"agent.joined",
+			"agent.joined",
+			"message.published",
+		]);
+	});
+
+	it("combines agents and types", () => {
+		const result = filterEvents(events, {
+			agentIds: new Set(["alice"]),
+			types: new Set(["action.proposed"] as const),
+		});
+		expect(result).toEqual([events[2]]);
+	});
+});
+
+describe("EVENT_TYPES", () => {
+	it("lists every event type the schema knows", () => {
+		expect([...EVENT_TYPES].sort()).toEqual([
+			"action.proposed",
+			"action.selected",
+			"agent.joined",
+			"agent.prompt_built",
+			"message.published",
+		]);
 	});
 });

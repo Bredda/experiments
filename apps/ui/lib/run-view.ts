@@ -1,5 +1,45 @@
-import type { AnyEvent } from "@experiments/types/events";
+import type { Observation } from "@experiments/types";
+import { type AnyEvent, anyEventSchema } from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
+
+export type EventType = AnyEvent["type"];
+
+/** Every event type, in the order the schema declares them. */
+export const EVENT_TYPES: readonly EventType[] = anyEventSchema.options.map(
+	(option) => option.shape.type.value,
+);
+
+export type EventFilter = {
+	agentIds: ReadonlySet<string>;
+	types: ReadonlySet<EventType>;
+};
+
+export const NO_FILTER: EventFilter = { agentIds: new Set(), types: new Set() };
+
+/** An empty set means "any": filters on agents and on types combine with AND. */
+export function filterEvents(
+	events: readonly AnyEvent[],
+	filter: EventFilter,
+): AnyEvent[] {
+	return events.filter(
+		(event) =>
+			(filter.agentIds.size === 0 || filter.agentIds.has(event.agentId)) &&
+			(filter.types.size === 0 || filter.types.has(event.type)),
+	);
+}
+
+/** The latest step the events reach; 0 when there is nothing but arrivals. */
+export function lastStep(events: readonly AnyEvent[]): number {
+	return events.reduce((max, event) => Math.max(max, event.step), 0);
+}
+
+/** The run as it stood once `step` was over: step 0 keeps only the arrivals. */
+export function eventsUntil(
+	events: readonly AnyEvent[],
+	step: number,
+): AnyEvent[] {
+	return events.filter((event) => event.step <= step);
+}
 
 /** agentId → roomId, as announced by the `agent.joined` events. */
 export function agentRooms(events: readonly AnyEvent[]): Map<string, string> {
@@ -49,7 +89,7 @@ export function roomSummaries(
 	events: readonly AnyEvent[],
 ): RoomSummary[] {
 	const rooms = agentRooms(events);
-	const lastStep = events.reduce((max, event) => Math.max(max, event.step), 0);
+	const finalStep = lastStep(events);
 
 	return run.scenario.rooms.map((room) => {
 		const messages = events.filter(
@@ -59,7 +99,7 @@ export function roomSummaries(
 		);
 		const spokenSteps = new Set(messages.map((message) => message.step));
 		let silentSteps = 0;
-		for (let step = 1; step <= lastStep; step++) {
+		for (let step = 1; step <= finalStep; step++) {
 			if (!spokenSteps.has(step)) silentSteps++;
 		}
 
@@ -114,7 +154,7 @@ export function buildTimeline(
 	const inRoom = (event: AnyEvent) =>
 		roomId === null || eventRoomId(event, rooms) === roomId;
 
-	const lastStep = events.reduce((max, event) => Math.max(max, event.step), 0);
+	const finalStep = lastStep(events);
 	const items: TimelineItem[] = [];
 
 	for (const event of events) {
@@ -128,7 +168,7 @@ export function buildTimeline(
 		}
 	}
 
-	for (let step = 1; step <= lastStep; step++) {
+	for (let step = 1; step <= finalStep; step++) {
 		const stepEvents = events.filter((event) => event.step === step);
 		const time = stepEvents[0]?.timestamp;
 		if (time === undefined) continue;
@@ -266,5 +306,69 @@ export function agentSummary(
 		speakProposals: proposals.filter((p) => p.type === "speak").length,
 		silentProposals: proposals.filter((p) => p.type === "stay_silent").length,
 		recentProposals: proposals.slice(-RECENT_PROPOSALS).reverse(),
+	};
+}
+
+export type ObservationSummary = {
+	step: number;
+	time: string;
+	roomId: string;
+	members: string[];
+	/** What the agent could read in the room, oldest first. */
+	messages: {
+		eventId: string;
+		step: number;
+		agentId: string;
+		content: string;
+	}[];
+	/** Proposals the agent had made before that step. */
+	earlierProposals: number;
+	/** The prompt the agent was sent at that step, for behaviors that build one. */
+	promptEventId: string | undefined;
+};
+
+/**
+ * What one agent observed at the start of a step. `events` is the run's log,
+ * used only to find the prompt recorded for that step.
+ */
+export function observationSummary(
+	observation: Observation,
+	events: readonly AnyEvent[],
+): ObservationSummary {
+	const messages: ObservationSummary["messages"] = [];
+	let earlierProposals = 0;
+
+	for (const event of observation.room.visibleEvents) {
+		if (event.type === "message.published") {
+			messages.push({
+				eventId: event.id,
+				step: event.step,
+				agentId: event.agentId,
+				content: event.content,
+			});
+		}
+		if (
+			event.type === "action.proposed" &&
+			event.agentId === observation.agentId
+		) {
+			earlierProposals++;
+		}
+	}
+
+	const prompt = events.find(
+		(event) =>
+			event.type === "agent.prompt_built" &&
+			event.step === observation.step &&
+			event.agentId === observation.agentId,
+	);
+
+	return {
+		step: observation.step,
+		time: observation.time,
+		roomId: observation.room.roomId,
+		members: observation.room.members,
+		messages,
+		earlierProposals,
+		promptEventId: prompt?.id,
 	};
 }

@@ -1,4 +1,5 @@
-import { createRun, stepRun } from "@experiments/engine";
+import { createRun, getObservations, stepRun } from "@experiments/engine";
+import { observationSchema } from "@experiments/types";
 import { runIdSchema } from "@experiments/types/ids";
 import {
 	eventRecordSchema,
@@ -16,6 +17,10 @@ const errorResponse = {
 
 const idParams = z
 	.object({ id: runIdSchema })
+	.toJSONSchema({ target: "draft-7" });
+
+const stepParams = z
+	.object({ id: runIdSchema, step: z.coerce.number().int().gte(1) })
 	.toJSONSchema({ target: "draft-7" });
 
 const runsRoutes: FastifyPluginAsync = async (app) => {
@@ -95,6 +100,30 @@ const runsRoutes: FastifyPluginAsync = async (app) => {
 				throw app.httpErrors.notFound(`Run ${runId} not found`);
 			}
 			return reply.code(200).send(app.store.listEvents(runId));
+		},
+	);
+
+	app.get<{ Params: { id: string; step: number } }>(
+		"/:id/steps/:step/observations",
+		{
+			schema: {
+				description:
+					"What each agent observed when it proposed at a given step: the room history as it stood at the start of that step. 404 if the run or the step does not exist.",
+				tags: ["runs"],
+				params: stepParams,
+				response: {
+					200: z.array(observationSchema).toJSONSchema(),
+					404: errorResponse,
+				},
+			},
+		},
+		async (request, reply) => {
+			const observations = getObservations(
+				app.store,
+				runIdSchema.parse(request.params.id),
+				request.params.step,
+			);
+			return reply.code(200).send(observations);
 		},
 	);
 

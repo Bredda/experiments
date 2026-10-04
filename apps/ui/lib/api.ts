@@ -1,3 +1,4 @@
+import type { Observation } from "@experiments/types";
 import type { AnyEvent } from "@experiments/types/events";
 import type {
 	EventRecord,
@@ -38,4 +39,15 @@ export async function stepRun(runId: string): Promise<StepResult> {
 	return await apiFetch<StepResult>(`runs/${runId}/steps/next`, {
 		method: "POST",
 	});
+}
+
+/** What each agent observed when it proposed at `step` (1 to the last step played). */
+export async function getStepObservations(
+	runId: string,
+	step: number,
+): Promise<Observation[]> {
+	return await apiFetch<Observation[]>(
+		`runs/${runId}/steps/${step}/observations`,
+		{ cache: "no-store" },
+	);
 }

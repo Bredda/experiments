@@ -113,6 +113,7 @@ Vitest runs in `packages/engine` (`pnpm --filter @experiments/engine test`) and 
 | Adding an event type | skill `add-event-type` |
 | Overall design | [design.md](design.md) |
 | Current task breakdown (follow it when implementing) | [todo.md](todo.md) |
-| Planned work and ideas | [roadmap.md](roadmap.md) |
+| Planned work (strategy, axes, order) | [roadmap.md](roadmap.md) |
+| Unscheduled ideas and cleanups | [backlog.md](backlog.md) |
 
-`roadmap.md` is the only place for planned work and ideas. Do not implement roadmap items unless asked.
+`roadmap.md` holds the committed direction and `backlog.md` the unscheduled ideas and cleanups; `todo.md` holds only the plan in progress. Do not implement items from the roadmap or the backlog unless asked, and when one is decided move it to the right file instead of duplicating it.

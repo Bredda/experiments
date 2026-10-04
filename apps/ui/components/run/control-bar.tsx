@@ -75,11 +75,11 @@ export function ControlBar({
 					<HugeiconsIcon icon={ArrowLeft01Icon} />
 				</Button>
 				<Slider
-					className="w-40"
+					className="data-horizontal:w-40"
 					min={0}
 					max={Math.max(latestStep, 1)}
 					step={1}
-					value={step}
+					value={[step]}
 					disabled={latestStep === 0}
 					onValueChange={(value) => {
 						const next = Array.isArray(value) ? value[0] : value;

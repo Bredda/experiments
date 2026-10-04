@@ -45,6 +45,8 @@ export function ControlBar({
 	onPlay: () => void;
 	onPause: () => void;
 }) {
+	const completed = run.status === "completed";
+
 	return (
 		<div className="flex h-11 shrink-0 items-center gap-3 border-b bg-card px-4">
 			<Button
@@ -114,29 +116,35 @@ export function ControlBar({
 					</Button>
 				</div>
 				<div className="flex items-center gap-2">
-					{run.status !== "completed" && (
-						<>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={onNextStep}
-								disabled={pending || playing}
-							>
-								<HugeiconsIcon icon={NextIcon} data-icon="inline-start" />
-								Next step
-							</Button>
-							{playing ? (
-								<Button size="sm" onClick={onPause} disabled={pausing}>
-									<HugeiconsIcon icon={PauseIcon} data-icon="inline-start" />
-									{pausing ? "Pausing…" : "Pause"}
-								</Button>
-							) : (
-								<Button size="sm" onClick={onPlay} disabled={pending}>
-									<HugeiconsIcon icon={PlayIcon} data-icon="inline-start" />
-									Play
-								</Button>
-							)}
-						</>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={onNextStep}
+						disabled={completed || pending || playing}
+					>
+						<HugeiconsIcon icon={NextIcon} data-icon="inline-start" />
+						Next step
+					</Button>
+					{playing ? (
+						<Button
+							size="sm"
+							className="min-w-24"
+							onClick={onPause}
+							disabled={pausing}
+						>
+							<HugeiconsIcon icon={PauseIcon} data-icon="inline-start" />
+							{pausing ? "Pausing…" : "Pause"}
+						</Button>
+					) : (
+						<Button
+							size="sm"
+							className="min-w-24"
+							onClick={onPlay}
+							disabled={completed || pending}
+						>
+							<HugeiconsIcon icon={PlayIcon} data-icon="inline-start" />
+							Play
+						</Button>
 					)}
 				</div>
 			</div>

@@ -16,12 +16,15 @@ export function Inspector({
 	run,
 	selection,
 	events,
+	step,
 	onSelect,
 	onClose,
 }: {
 	run: RunRecord;
 	selection: RunSelection;
 	events: AnyEvent[];
+	/** The step the cursor shows. */
+	step: number;
 	onSelect: (selection: RunSelection) => void;
 	onClose: () => void;
 }) {
@@ -63,6 +66,7 @@ export function Inspector({
 						run={run}
 						events={events}
 						agentId={selection.id}
+						step={step}
 						onSelectEvent={(id) => onSelect({ type: "event", id })}
 					/>
 				) : event ? (

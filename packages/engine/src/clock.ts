@@ -11,8 +11,13 @@ export class SimulationClock {
 	}
 
 	get now(): Time {
+		return this.timeAt(this.#step);
+	}
+
+	/** Simulation time at a given step, whatever step the clock is at. */
+	timeAt(step: Step): Time {
 		return new Date(
-			this.start.getTime() + this.stepSizeMs * this.#step,
+			this.start.getTime() + this.stepSizeMs * step,
 		).toISOString();
 	}
 

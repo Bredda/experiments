@@ -1,3 +1,4 @@
+import type { Observation } from "@experiments/types";
 import type { AnyEvent } from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
 
@@ -279,5 +280,69 @@ export function agentSummary(
 		speakProposals: proposals.filter((p) => p.type === "speak").length,
 		silentProposals: proposals.filter((p) => p.type === "stay_silent").length,
 		recentProposals: proposals.slice(-RECENT_PROPOSALS).reverse(),
+	};
+}
+
+export type ObservationSummary = {
+	step: number;
+	time: string;
+	roomId: string;
+	members: string[];
+	/** What the agent could read in the room, oldest first. */
+	messages: {
+		eventId: string;
+		step: number;
+		agentId: string;
+		content: string;
+	}[];
+	/** Proposals the agent had made before that step. */
+	earlierProposals: number;
+	/** The prompt the agent was sent at that step, for behaviors that build one. */
+	promptEventId: string | undefined;
+};
+
+/**
+ * What one agent observed at the start of a step. `events` is the run's log,
+ * used only to find the prompt recorded for that step.
+ */
+export function observationSummary(
+	observation: Observation,
+	events: readonly AnyEvent[],
+): ObservationSummary {
+	const messages: ObservationSummary["messages"] = [];
+	let earlierProposals = 0;
+
+	for (const event of observation.room.visibleEvents) {
+		if (event.type === "message.published") {
+			messages.push({
+				eventId: event.id,
+				step: event.step,
+				agentId: event.agentId,
+				content: event.content,
+			});
+		}
+		if (
+			event.type === "action.proposed" &&
+			event.agentId === observation.agentId
+		) {
+			earlierProposals++;
+		}
+	}
+
+	const prompt = events.find(
+		(event) =>
+			event.type === "agent.prompt_built" &&
+			event.step === observation.step &&
+			event.agentId === observation.agentId,
+	);
+
+	return {
+		step: observation.step,
+		time: observation.time,
+		roomId: observation.room.roomId,
+		members: observation.room.members,
+		messages,
+		earlierProposals,
+		promptEventId: prompt?.id,
 	};
 }

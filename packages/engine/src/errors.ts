@@ -20,3 +20,13 @@ export class RunBusyError extends Error {
 		this.name = "RunBusyError";
 	}
 }
+
+export class StepNotFoundError extends Error {
+	constructor(
+		readonly runId: RunId,
+		readonly step: number,
+	) {
+		super(`Run ${runId} has no step ${step}`);
+		this.name = "StepNotFoundError";
+	}
+}

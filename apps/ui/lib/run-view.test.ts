@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { observationSchema } from "@experiments/types";
 import {
 	type AnyEvent,
 	actionProposedSchema,
@@ -16,6 +17,7 @@ import {
 	eventRoomId,
 	eventsUntil,
 	lastStep,
+	observationSummary,
 	roomSummaries,
 } from "./run-view";
 
@@ -352,5 +354,54 @@ describe("eventsUntil", () => {
 
 	it("returns everything past the last step", () => {
 		expect(eventsUntil(events, 99)).toEqual(events);
+	});
+});
+
+describe("observationSummary", () => {
+	const history: AnyEvent[] = [
+		joined("alice", "main"),
+		joined("bob", "main"),
+		proposedSpeak("alice", "main", 1),
+		proposedSilent("bob", 1),
+		published("alice", "main", 1),
+		proposedSilent("alice", 2),
+	];
+	const observation = (agentId: string, step: number) =>
+		observationSchema.parse({
+			agentId,
+			step,
+			time: TIME,
+			room: {
+				roomId: "main",
+				members: ["alice", "bob"],
+				visibleEvents: history.filter((event) => event.step < step),
+			},
+		});
+
+	it("lists the messages visible at that step and the agent's own earlier proposals", () => {
+		const summary = observationSummary(observation("alice", 3), history);
+
+		expect(summary.messages.map((m) => m.agentId)).toEqual(["alice"]);
+		expect(summary.earlierProposals).toBe(2);
+		expect(summary.members).toEqual(["alice", "bob"]);
+	});
+
+	it("shows an empty room at the first step", () => {
+		const summary = observationSummary(observation("bob", 1), history);
+
+		expect(summary.messages).toEqual([]);
+		expect(summary.earlierProposals).toBe(0);
+	});
+
+	it("points at the prompt recorded for that agent and step, if any", () => {
+		const built = prompt("alice", 3);
+		const events = [...history, built, prompt("bob", 3)];
+
+		expect(
+			observationSummary(observation("alice", 3), events).promptEventId,
+		).toBe(built.id);
+		expect(
+			observationSummary(observation("alice", 2), events).promptEventId,
+		).toBeUndefined();
 	});
 });

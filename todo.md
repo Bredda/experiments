@@ -33,8 +33,8 @@ Working plan for the feature in progress, and the backlog. Strategy and horizons
 
 ### Phase 2 — What each agent could observe (engine, api, ui)
 
-- [ ] `Simulation.observationsAt(step)` sharing the observation helper with `#runStep`, `StepNotFoundError`, `getObservations` use case, engine tests. **Verify:** `pnpm --filter @experiments/engine test`.
-- [ ] `GET /runs/:id/steps/:step/observations` and `getStepObservations` in `lib/api.ts`. **Verify:** curl returns one observation per agent, 404 out of range.
+- [x] `Simulation.observationsAt(step)` sharing the observation helper with `#runStep`, `StepNotFoundError`, `getObservations` use case, engine tests. **Verify:** `pnpm --filter @experiments/engine test`.
+- [x] `GET /runs/:id/steps/:step/observations` and `getStepObservations` in `lib/api.ts`. **Verify:** curl returns one observation per agent, 404 out of range.
 - [ ] "Observation at step N" section in the agent panel (`observationSummary` in `lib/run-view.ts` with tests). **Verify:** the panel changes when the cursor moves.
 
 ### Phase 3 — Filters (ui)

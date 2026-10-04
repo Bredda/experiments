@@ -1,4 +1,5 @@
 import type { RunStore } from "@experiments/db";
+import type { Observation } from "@experiments/types";
 import type { RunId } from "@experiments/types/ids";
 import type { EventRecord, RunRecord } from "@experiments/types/run";
 import type { ScenarioConfig } from "@experiments/types/scenario";
@@ -79,4 +80,17 @@ export async function stepRun(
 	} finally {
 		stepping.delete(runId);
 	}
+}
+
+/**
+ * What every agent observed when it proposed at `step` (1 to the last step
+ * played). Read-only: nothing is stepped or persisted.
+ */
+export function getObservations(
+	store: RunStore,
+	runId: RunId,
+	step: number,
+): Observation[] {
+	const { simulation } = loadSimulation(store, runId);
+	return simulation.observationsAt(step);
 }

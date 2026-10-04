@@ -106,6 +106,7 @@ export function RunViewer({
 							run={run}
 							selection={shownSelection}
 							events={shownEvents}
+							step={step}
 							onSelect={setSelection}
 							onClose={() => setSelection(null)}
 						/>

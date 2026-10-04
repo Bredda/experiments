@@ -120,7 +120,7 @@ The run page has three roles, constrained to the viewport height with independen
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
-│ name · seed     status · Step n / N · cursor · Live  [ Next ] [ Play ] │
+│ name · seed     status · Step n / N · cursor · Live   Next · Play│
 ├───────────┬──────────────────────────────────────┬───────────────┤
 │ Event     │ room cards (filter)                  │ Inspector     │
 │ viewer    │──────────────────────────────────────│ (event or     │

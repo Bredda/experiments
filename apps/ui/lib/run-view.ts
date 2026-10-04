@@ -1,6 +1,32 @@
 import type { Observation } from "@experiments/types";
-import type { AnyEvent } from "@experiments/types/events";
+import { type AnyEvent, anyEventSchema } from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
+
+export type EventType = AnyEvent["type"];
+
+/** Every event type, in the order the schema declares them. */
+export const EVENT_TYPES: readonly EventType[] = anyEventSchema.options.map(
+	(option) => option.shape.type.value,
+);
+
+export type EventFilter = {
+	agentIds: ReadonlySet<string>;
+	types: ReadonlySet<EventType>;
+};
+
+export const NO_FILTER: EventFilter = { agentIds: new Set(), types: new Set() };
+
+/** An empty set means "any": filters on agents and on types combine with AND. */
+export function filterEvents(
+	events: readonly AnyEvent[],
+	filter: EventFilter,
+): AnyEvent[] {
+	return events.filter(
+		(event) =>
+			(filter.agentIds.size === 0 || filter.agentIds.has(event.agentId)) &&
+			(filter.types.size === 0 || filter.types.has(event.type)),
+	);
+}
 
 /** The latest step the events reach; 0 when there is nothing but arrivals. */
 export function lastStep(events: readonly AnyEvent[]): number {

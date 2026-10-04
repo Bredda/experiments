@@ -3,7 +3,13 @@
 import type { AnyEvent } from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
 import { useMemo, useState } from "react";
-import { eventsUntil, lastStep, roomSummaries } from "@/lib/run-view";
+import {
+	type EventFilter,
+	eventsUntil,
+	lastStep,
+	NO_FILTER,
+	roomSummaries,
+} from "@/lib/run-view";
 import { Chat } from "./chat";
 import { ControlBar } from "./control-bar";
 import { RunEvents } from "./events";
@@ -31,6 +37,7 @@ export function RunViewer({
 			: null,
 	);
 	// null follows the run: the view is always at its latest step.
+	const [eventFilter, setEventFilter] = useState<EventFilter>(NO_FILTER);
 	const [cursor, setCursor] = useState<number | null>(null);
 	const latestStep = lastStep(events);
 	const step = Math.min(cursor ?? latestStep, latestStep);
@@ -72,6 +79,9 @@ export function RunViewer({
 					<aside className="min-h-0 w-80 shrink-0 border-r">
 						<RunEvents
 							events={shownEvents}
+							agentIds={run.scenario.agents.map((agent) => agent.id)}
+							filter={eventFilter}
+							onFilter={setEventFilter}
 							onSelect={(id) => setSelection({ type: "event", id })}
 							selected={
 								shownSelection?.type === "event" ? shownSelection.id : null

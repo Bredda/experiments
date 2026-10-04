@@ -14,9 +14,12 @@ import {
 	agentRooms,
 	agentSummary,
 	buildTimeline,
+	EVENT_TYPES,
 	eventRoomId,
 	eventsUntil,
+	filterEvents,
 	lastStep,
+	NO_FILTER,
 	observationSummary,
 	roomSummaries,
 } from "./run-view";
@@ -403,5 +406,59 @@ describe("observationSummary", () => {
 		expect(
 			observationSummary(observation("alice", 2), events).promptEventId,
 		).toBeUndefined();
+	});
+});
+
+describe("filterEvents", () => {
+	const events: AnyEvent[] = [
+		joined("alice", "main"),
+		joined("bob", "main"),
+		proposedSpeak("alice", "main", 1),
+		proposedSilent("bob", 1),
+		published("alice", "main", 1),
+	];
+
+	it("keeps everything when no filter is set", () => {
+		expect(filterEvents(events, NO_FILTER)).toEqual(events);
+	});
+
+	it("keeps the events of the chosen agents", () => {
+		const result = filterEvents(events, {
+			...NO_FILTER,
+			agentIds: new Set(["bob"]),
+		});
+		expect(result.map((e) => e.agentId)).toEqual(["bob", "bob"]);
+	});
+
+	it("keeps the chosen types, several at once", () => {
+		const result = filterEvents(events, {
+			...NO_FILTER,
+			types: new Set(["agent.joined", "message.published"] as const),
+		});
+		expect(result.map((e) => e.type)).toEqual([
+			"agent.joined",
+			"agent.joined",
+			"message.published",
+		]);
+	});
+
+	it("combines agents and types", () => {
+		const result = filterEvents(events, {
+			agentIds: new Set(["alice"]),
+			types: new Set(["action.proposed"] as const),
+		});
+		expect(result).toEqual([events[2]]);
+	});
+});
+
+describe("EVENT_TYPES", () => {
+	it("lists every event type the schema knows", () => {
+		expect([...EVENT_TYPES].sort()).toEqual([
+			"action.proposed",
+			"action.selected",
+			"agent.joined",
+			"agent.prompt_built",
+			"message.published",
+		]);
 	});
 });

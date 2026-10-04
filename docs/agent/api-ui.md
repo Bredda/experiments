@@ -13,14 +13,14 @@ src/routes/           one Fastify plugin per resource, registered with a prefix
 src/paths.ts          resolves DB_PATH against the monorepo root
 ```
 
-Routes: `GET/POST /runs`, `GET /runs/:id`, `GET /runs/:id/events`, `POST /runs/:id/steps/next` (advances one step, returns `{ run, events }` with only the new events), and probes under `/healthz`.
+Routes: `GET/POST /runs`, `GET /runs/:id`, `GET /runs/:id/events`, `GET /runs/:id/steps/:step/observations` (what each agent observed when it proposed at that step; 404 if the step was not played), `POST /runs/:id/steps/next` (advances one step, returns `{ run, events }` with only the new events), and probes under `/healthz`.
 
 Conventions:
 
 - Request and response schemas come from `@experiments/types`: `schema.toJSONSchema()` for Fastify/OpenAPI (`{ target: "draft-7" }` for bodies), `schema.parse` for validation inside handlers. Do not hand-write a parallel JSON schema.
 - `src/index.ts` imports `@experiments/ai` for its side effect (registers the `llm` behavior). Keep that import.
 - Handlers use `app.store`, the single `RunStore` decorated by the store plugin (never open a store per request), and call engine use cases (`createRun`, `stepRun`); they contain no simulation logic.
-- Engine errors are mapped to HTTP in `src/error-handler.ts` (`RunNotFoundError` 404, `RunCompletedError` and `RunBusyError` 409). Throw them or `app.httpErrors.*`; do not build error replies by hand. Declare `params` with the id schema so malformed ids get a 400.
+- Engine errors are mapped to HTTP in `src/error-handler.ts` (`RunNotFoundError` and `StepNotFoundError` 404, `RunCompletedError` and `RunBusyError` 409). Throw them or `app.httpErrors.*`; do not build error replies by hand. Declare `params` with the id schema so malformed ids get a 400.
 - Add each new route group in `src/routes/index.ts` and give it `description` and `tags` so it shows up in `/reference`.
 
 ## UI (`apps/ui`)
@@ -56,16 +56,19 @@ Conventions:
 `app/runs/[runId]/page.tsx` loads the run and its events on the server and renders `RunViewer`, keyed by run id so switching run tabs does not reuse state. The page is constrained to the viewport height and each panel scrolls on its own; keep that layout when editing it.
 
 ```text
-control bar  (control-bar.tsx)   name, status, step n / N, panel toggle, Next step, Play / Pause
-event viewer (events.tsx)        raw log, collapsible; the source of truth
+control bar  (control-bar.tsx)   name, status, step n / N, panel toggle, time cursor (prev, slider, next, Live), Next step, Play / Pause
+event viewer (events.tsx)        raw log, collapsible; the source of truth; filter menu by agent and event type
 centre       room-strip.tsx      one card per room, filters the chat ("All rooms" card only with several rooms)
              chat.tsx            chat-style timeline of the selected room
 inspector    (inspector.tsx)     contextual, opens on selection, close button
              event-panel.tsx     detail of an event (generic JSON fallback for events without a dedicated view)
-             agent-panel.tsx     read-only detail of an agent
+             agent-panel.tsx     read-only detail of an agent, with what it observed at the cursor step
 ```
 
 - **State.** `useRunExecution` (`use-run-execution.ts`) holds `run` and `events` on the client and exposes `nextStep`, `play` and `pause`. Autoplay is a loop over the same `steps/next` call with a short fixed delay; pause lets the step in flight finish, and leaving the page stops the loop. `RunViewer` adds `selection` (`{ type: "event" | "agent"; id }`, see `selection.ts`), the room filter and the left panel toggle.
+- **Time cursor.** `RunViewer` holds `cursor` (`null` = live). The step shown is the cursor or the latest step; `eventsUntil` cuts the log at that step and every panel (viewer, chat, room strip, inspector) reads the cut events, never the full log. Moving the cursor does not touch execution (Next/Play stay available); reaching the latest step goes back to live. A selected event later than the cursor is dropped from the view.
+- **Observation view.** The agent panel fetches `GET /runs/:id/steps/:step/observations` for the cursor step (`useStepObservations`, cached per run and step since a played step never changes) and formats it with `observationSummary`. The ui never recomputes what an agent could see; that is the engine's `Room.view`.
+- **Filters.** `filterEvents` (agents and event types, AND; empty = any) applies to the event viewer only, after the cursor. `agent.prompt_built` stays hidden in the viewer unless its type is selected.
 - **One selection, many views.** Clicking an event in the viewer, a message or marker in the chat, or a proposal in the agent panel sets `selection`; the inspector, the viewer highlight and the chat highlight all read it. Agents are selected from a chat avatar or name, or from the "Agent" link in the inspector.
 - **Room of an event.** Events without a `roomId` (silent proposals, prompts) take the room their agent joined, derived from `agent.joined` events (`eventRoomId`).
 - **Chat items.** `buildTimeline` returns arrivals, a marker per step, messages, a selection marker when several agents wanted to speak, and a silence marker when nobody spoke. Each item keeps the id of the event it comes from.

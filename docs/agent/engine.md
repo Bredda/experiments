@@ -24,6 +24,8 @@ Run status is `created | running | completed` (`runStatusSchema`). `stepRun` set
 4. Only `speak` proposals become scheduler candidates. `stay_silent` is recorded but never selected.
 5. If there are candidates, `scheduler.select(candidates, rng)` picks one, then `action.selected` and `message.published` are emitted.
 
+`Simulation.observationsAt(step)` (use case `getObservations(store, runId, step)`) rebuilds what every agent observed at a played step: the history with `event.step < step`, at the time of that step. It goes through the same private helper (`#observe`) as a real step, so replay cannot diverge from what the agents were given. Read-only; a step that was not played throws `StepNotFoundError` (404 over HTTP).
+
 Randomness is `config.rngForStep(step)`, derived from `(seed, step)`, so a step gives the same result whether the simulation ran continuously or was rebuilt just before it.
 
 ## Events

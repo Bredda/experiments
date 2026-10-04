@@ -15,37 +15,7 @@ Working plan for the feature in progress, and the backlog. Strategy and horizons
 
 ## Current plan
 
-**Goal:** roadmap axis 2, inspection and replay: move through a run step by step and see what each agent could observe at that point.
-
-**Where we are:** the run page has the event viewer, room filter, chat timeline and a read-only agent panel. Missing: a time cursor, an observation view per agent, filters by agent and event type.
-
-### Decisions (confirmed)
-
-- The observation of an agent at step N is computed by the engine (`Simulation.observationsAt`, same helper as the real step) and served by the API; the ui never recomputes visibility.
-- Scope: cursor, observation view and filters. The event log rewrite stays in the backlog.
-- Cursor: `null` is live (latest step, follows Next/Play); moving back freezes the view without blocking execution; a "Live" button returns.
-- Defaults used: slider added with the shadcn CLI; filters apply to the event viewer only.
-
-### Phase 1 — Time cursor (ui)
-
-- [x] `eventsUntil(events, step)` in `apps/ui/lib/run-view.ts` with tests. **Verify:** `pnpm --filter ui test`.
-- [ ] Cursor state in `components/run/viewer.tsx`, controls (prev/next, slider, Live) in `control-bar.tsx`; chat, viewer, room strip and agent panel read the events up to the cursor. **Verify:** in the browser, with a run at step 3, cursor at 1 shows only step <= 1; Live follows Next step.
-
-### Phase 2 — What each agent could observe (engine, api, ui)
-
-- [x] `Simulation.observationsAt(step)` sharing the observation helper with `#runStep`, `StepNotFoundError`, `getObservations` use case, engine tests. **Verify:** `pnpm --filter @experiments/engine test`.
-- [x] `GET /runs/:id/steps/:step/observations` and `getStepObservations` in `lib/api.ts`. **Verify:** curl returns one observation per agent, 404 out of range.
-- [ ] "Observation at step N" section in the agent panel (`observationSummary` in `lib/run-view.ts` with tests). **Verify:** the panel changes when the cursor moves.
-
-### Phase 3 — Filters (ui)
-
-- [ ] `filterEvents` and `EVENT_TYPES` in `lib/run-view.ts` with tests; filter bar in `components/run/events.tsx`. **Verify:** tests, and in the browser filters compose with the cursor and leave the chat unchanged.
-
-### Wrap-up
-
-- [ ] Update `docs/agent/engine.md`, `docs/agent/api-ui.md`; roadmap axis 2 to Done; replace this plan by "None".
-
-**Done when:** a user can drag the cursor over a run, see the chat, events and agent stats as of that step, read what an agent observed at that step (and its prompt for LLM agents), and filter the event viewer by agent and event type.
+None for now. Next candidates: per-run cost (axis 7) and the agents and memory axis (3).
 
 A plan in this file has: a goal, a short "where we are", **Decisions** (each with a recommendation, confirmed by the user before the tasks that depend on it), tasks grouped in phases (one commit per phase), each task with the files it touches and a **Verify** line, and a "Done when" block.
 

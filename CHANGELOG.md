@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/Bredda/experiments/compare/v1.0.0...v1.1.0) (2026-10-04)
+
+
+### Features
+
+* inspection replay ([#7](https://github.com/Bredda/experiments/issues/7)) ([c712858](https://github.com/Bredda/experiments/commit/c7128582a659bc62f2f16a5a587584aba7f42309))
+
 ## 1.0.0 (2026-10-03)
 
 

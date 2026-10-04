@@ -23,8 +23,8 @@ The MVP does not need sophisticated emergent behavior. It needs to prove that co
 
 | # | Axis | Horizon | Status |
 | --- | --- | --- | --- |
-| 1 | Run lifecycle | Now | Stepping and autoplay work; parallel agents and streaming pending |
-| 2 | Inspection and replay | Next | Run page with event viewer, room filter, chat and agent panel; time cursor pending |
+| 1 | Run lifecycle | Done | Stepping and autoplay work; parallel agents and streaming pending |
+| 2 | Inspection and replay | Now | Run page with event viewer, room filter, chat and agent panel; time cursor pending |
 | 3 | Agents and memory | Next | LLM agents and sliding-window memory exist |
 | 4 | Interventions | Later | Not started |
 | 5 | Environment | Later | Single room |

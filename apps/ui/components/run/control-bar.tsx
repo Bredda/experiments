@@ -1,5 +1,7 @@
 import type { RunRecord } from "@experiments/types/run";
 import {
+	ArrowLeft01Icon,
+	ArrowRight01Icon,
 	NextIcon,
 	PanelLeftIcon,
 	PauseIcon,
@@ -8,10 +10,15 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { RunStatusBadge } from "@/components/runs/status-badge";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
 export function ControlBar({
 	run,
 	step,
+	latestStep,
+	live,
+	onCursor,
+	onLive,
 	pending,
 	playing,
 	pausing,
@@ -22,7 +29,13 @@ export function ControlBar({
 	onPause,
 }: {
 	run: RunRecord;
+	/** The step the view shows: the cursor, or the latest step when live. */
 	step: number;
+	latestStep: number;
+	live: boolean;
+	/** Moves the view to a played step, without touching the execution. */
+	onCursor: (step: number) => void;
+	onLive: () => void;
 	pending: boolean;
 	playing: boolean;
 	pausing: boolean;
@@ -51,6 +64,47 @@ export function ControlBar({
 			<span className="font-mono text-muted-foreground text-xs">
 				#{run.seed}
 			</span>
+			<div className="flex items-center gap-1.5">
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={() => onCursor(step - 1)}
+					disabled={step <= 0}
+					aria-label="Previous step"
+				>
+					<HugeiconsIcon icon={ArrowLeft01Icon} />
+				</Button>
+				<Slider
+					className="w-40"
+					min={0}
+					max={Math.max(latestStep, 1)}
+					step={1}
+					value={step}
+					disabled={latestStep === 0}
+					onValueChange={(value) => {
+						const next = Array.isArray(value) ? value[0] : value;
+						if (next !== undefined) onCursor(next);
+					}}
+					aria-label="Step cursor"
+				/>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={() => onCursor(step + 1)}
+					disabled={step >= latestStep}
+					aria-label="Next played step"
+				>
+					<HugeiconsIcon icon={ArrowRight01Icon} />
+				</Button>
+				<Button
+					variant={live ? "secondary" : "outline"}
+					size="sm"
+					onClick={onLive}
+					disabled={live}
+				>
+					Live
+				</Button>
+			</div>
 			<div className="ml-auto flex items-center gap-2">
 				{run.status !== "completed" && (
 					<>

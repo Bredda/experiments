@@ -1,6 +1,19 @@
 import type { AnyEvent } from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
 
+/** The latest step the events reach; 0 when there is nothing but arrivals. */
+export function lastStep(events: readonly AnyEvent[]): number {
+	return events.reduce((max, event) => Math.max(max, event.step), 0);
+}
+
+/** The run as it stood once `step` was over: step 0 keeps only the arrivals. */
+export function eventsUntil(
+	events: readonly AnyEvent[],
+	step: number,
+): AnyEvent[] {
+	return events.filter((event) => event.step <= step);
+}
+
 /** agentId → roomId, as announced by the `agent.joined` events. */
 export function agentRooms(events: readonly AnyEvent[]): Map<string, string> {
 	const rooms = new Map<string, string>();
@@ -49,7 +62,7 @@ export function roomSummaries(
 	events: readonly AnyEvent[],
 ): RoomSummary[] {
 	const rooms = agentRooms(events);
-	const lastStep = events.reduce((max, event) => Math.max(max, event.step), 0);
+	const finalStep = lastStep(events);
 
 	return run.scenario.rooms.map((room) => {
 		const messages = events.filter(
@@ -59,7 +72,7 @@ export function roomSummaries(
 		);
 		const spokenSteps = new Set(messages.map((message) => message.step));
 		let silentSteps = 0;
-		for (let step = 1; step <= lastStep; step++) {
+		for (let step = 1; step <= finalStep; step++) {
 			if (!spokenSteps.has(step)) silentSteps++;
 		}
 
@@ -114,7 +127,7 @@ export function buildTimeline(
 	const inRoom = (event: AnyEvent) =>
 		roomId === null || eventRoomId(event, rooms) === roomId;
 
-	const lastStep = events.reduce((max, event) => Math.max(max, event.step), 0);
+	const finalStep = lastStep(events);
 	const items: TimelineItem[] = [];
 
 	for (const event of events) {
@@ -128,7 +141,7 @@ export function buildTimeline(
 		}
 	}
 
-	for (let step = 1; step <= lastStep; step++) {
+	for (let step = 1; step <= finalStep; step++) {
 		const stepEvents = events.filter((event) => event.step === step);
 		const time = stepEvents[0]?.timestamp;
 		if (time === undefined) continue;

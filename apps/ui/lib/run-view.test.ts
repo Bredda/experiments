@@ -14,6 +14,8 @@ import {
 	agentSummary,
 	buildTimeline,
 	eventRoomId,
+	eventsUntil,
+	lastStep,
 	roomSummaries,
 } from "./run-view";
 
@@ -323,5 +325,32 @@ describe("agentSummary", () => {
 
 	it("knows nothing about an agent outside the scenario", () => {
 		expect(agentSummary(config, events, "ghost")).toBeUndefined();
+	});
+});
+
+describe("eventsUntil", () => {
+	const events: AnyEvent[] = [
+		joined("alice", "main"),
+		proposedSilent("alice", 1),
+		proposedSpeak("alice", "main", 2),
+		published("alice", "main", 2),
+		proposedSilent("alice", 3),
+	];
+
+	it("keeps only the arrivals at step 0", () => {
+		expect(eventsUntil(events, 0)).toEqual([events[0]]);
+	});
+
+	it("keeps every event up to and including the step", () => {
+		expect(eventsUntil(events, 2)).toEqual(events.slice(0, 4));
+	});
+
+	it("keeps silent steps, they are part of the trajectory", () => {
+		expect(eventsUntil(events, 1)).toEqual(events.slice(0, 2));
+		expect(lastStep(eventsUntil(events, 1))).toBe(1);
+	});
+
+	it("returns everything past the last step", () => {
+		expect(eventsUntil(events, 99)).toEqual(events);
 	});
 });

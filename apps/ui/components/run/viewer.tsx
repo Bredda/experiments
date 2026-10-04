@@ -3,7 +3,7 @@
 import type { AnyEvent } from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
 import { useMemo, useState } from "react";
-import { roomSummaries } from "@/lib/run-view";
+import { eventsUntil, lastStep, roomSummaries } from "@/lib/run-view";
 import { Chat } from "./chat";
 import { ControlBar } from "./control-bar";
 import { RunEvents } from "./events";
@@ -11,10 +11,6 @@ import { Inspector } from "./inspector";
 import { RoomStrip } from "./room-strip";
 import type { RunSelection } from "./selection";
 import { useRunExecution } from "./use-run-execution";
-
-function currentStep(events: AnyEvent[]) {
-	return events.reduce((max, event) => Math.max(max, event.step), 0);
-}
 
 export function RunViewer({
 	run: initialRun,
@@ -34,13 +30,34 @@ export function RunViewer({
 			? (initialRun.scenario.rooms[0]?.id ?? null)
 			: null,
 	);
-	const rooms = useMemo(() => roomSummaries(run, events), [run, events]);
+	// null follows the run: the view is always at its latest step.
+	const [cursor, setCursor] = useState<number | null>(null);
+	const latestStep = lastStep(events);
+	const step = Math.min(cursor ?? latestStep, latestStep);
+	const shownEvents = useMemo(() => eventsUntil(events, step), [events, step]);
+	const rooms = useMemo(
+		() => roomSummaries(run, shownEvents),
+		[run, shownEvents],
+	);
+	// A selection from a later step is not part of the view the cursor shows.
+	const shownSelection =
+		selection?.type === "event" &&
+		!shownEvents.some((event) => event.id === selection.id)
+			? null
+			: selection;
 
 	return (
 		<div className="flex h-full flex-col">
 			<ControlBar
 				run={run}
-				step={currentStep(events)}
+				step={step}
+				latestStep={latestStep}
+				live={cursor === null || cursor >= latestStep}
+				// Reaching the latest step means following the run again.
+				onCursor={(next) =>
+					setCursor(next >= latestStep ? null : Math.max(next, 0))
+				}
+				onLive={() => setCursor(null)}
 				pending={pending}
 				playing={playing}
 				pausing={pausing}
@@ -54,9 +71,11 @@ export function RunViewer({
 				{eventsOpen && (
 					<aside className="min-h-0 w-80 shrink-0 border-r">
 						<RunEvents
-							events={events}
+							events={shownEvents}
 							onSelect={(id) => setSelection({ type: "event", id })}
-							selected={selection?.type === "event" ? selection.id : null}
+							selected={
+								shownSelection?.type === "event" ? shownSelection.id : null
+							}
 						/>
 					</aside>
 				)}
@@ -68,25 +87,25 @@ export function RunViewer({
 					/>
 					<div className="min-h-0 flex-1 overflow-hidden rounded-lg border">
 						<Chat
-							events={events}
+							events={shownEvents}
 							roomId={roomFilter}
 							selectedEventId={
-								selection?.type === "event" ? selection.id : null
+								shownSelection?.type === "event" ? shownSelection.id : null
 							}
 							selectedAgentId={
-								selection?.type === "agent" ? selection.id : null
+								shownSelection?.type === "agent" ? shownSelection.id : null
 							}
 							onSelectEvent={(id) => setSelection({ type: "event", id })}
 							onSelectAgent={(id) => setSelection({ type: "agent", id })}
 						/>
 					</div>
 				</section>
-				{selection && (
+				{shownSelection && (
 					<aside className="min-h-0 w-90 shrink-0 border-l">
 						<Inspector
 							run={run}
-							selection={selection}
-							events={events}
+							selection={shownSelection}
+							events={shownEvents}
 							onSelect={setSelection}
 							onClose={() => setSelection(null)}
 						/>

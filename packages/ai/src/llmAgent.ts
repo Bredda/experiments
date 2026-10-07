@@ -37,8 +37,8 @@ export class LLMAgent extends Agent {
 			persona: this.#persona,
 			memory,
 		});
-		const proposal = await this.#runner(prompt);
+		const { proposal, call } = await this.#runner(prompt);
 
-		return toActionProposal(proposal, this.id, this.roomId, prompt);
+		return toActionProposal(proposal, this.id, this.roomId, prompt, call);
 	}
 }

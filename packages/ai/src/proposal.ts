@@ -1,6 +1,7 @@
 import {
 	type ActionProposal,
 	actionProposal,
+	type ModelCall,
 	type Prompt,
 	speak,
 	staySilent,
@@ -37,6 +38,7 @@ export function toActionProposal(
 	agentId: AgentId,
 	roomId: RoomId,
 	prompt?: Prompt,
+	meta?: ModelCall,
 ): ActionProposal {
 	if (proposal.proposedAction === "speak") {
 		return actionProposal({
@@ -49,6 +51,7 @@ export function toActionProposal(
 			}),
 			confidence: proposal.confidence,
 			prompt,
+			meta,
 		});
 	}
 
@@ -56,5 +59,6 @@ export function toActionProposal(
 		action: staySilent({ agentId, reasoning: proposal.reasoning }),
 		confidence: proposal.confidence,
 		prompt,
+		meta,
 	});
 }

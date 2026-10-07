@@ -47,7 +47,8 @@ One commit per phase, in this order (conventional commits, they feed release-ple
 - [x] `last_n` in `MEMORY_KINDS`, `LastNMemory`, registration, UI label. Files: `packages/types/src/memory.ts`, `packages/engine/src/memory/*`, `apps/ui/components/create-run/schemas.ts`. **Verify:** `memory.test.ts` (truncation, own proposals only, fewer than N events, determinism).
 
 **5. `feat: record model and token usage on agent.prompt_built`**
-- [ ] Optional `meta` on `actionProposalSchema`, optional `model` and `usage` on `agentPromptBuiltSchema`, copied by `Simulation`; the runner fills them. Files: `packages/types/src/{actions,events}.ts`, `packages/engine/src/simulation.ts`, `packages/ai/src/*`. **Verify:** engine test (event carries the metadata, persisted and restored; absent metadata unchanged); real run confirms the usage is populated (needs an API key).
+- [x] Optional `meta` on `actionProposalSchema`, optional `model` and `usage` on `agentPromptBuiltSchema`, copied by `Simulation`; the runner fills them. Files: `packages/types/src/{actions,events}.ts`, `packages/engine/src/simulation.ts`, `packages/ai/src/*`. **Verify:** engine test (event carries the metadata, persisted and restored; absent metadata unchanged).
+- [ ] Real run: confirm that LangChain fills `usage_metadata` on the structured-output path (the runner reads it and tolerates its absence). Not done: the `ANTHROPIC_API_KEY` in `.env` is rejected by the API (401). Needs a valid key and a one-step run with an `llm` agent.
 
 **6. `test(ai): run the llm agent offline with a fake runner`**
 - [ ] `test` script, vitest and config in `packages/ai`; tests for the prompt with and without persona, memory in the prompt, one system message, proposal mapping, metadata. Update the Testing section of `AGENT.md`. **Verify:** `pnpm --filter @experiments/ai test`, no API key needed.

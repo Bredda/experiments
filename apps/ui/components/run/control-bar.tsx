@@ -2,18 +2,16 @@ import type { RunRecord } from "@experiments/types/run";
 import {
 	ArrowLeft01Icon,
 	ArrowRight01Icon,
-	GitForkIcon,
 	NextIcon,
 	PanelLeftIcon,
 	PauseIcon,
 	PlayIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import Link from "next/link";
 import { RunStatusBadge } from "@/components/runs/status-badge";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { ForkTreeSheet } from "./fork-tree-sheet";
+import { ForkSheet } from "./fork-sheet";
 
 export function ControlBar({
 	run,
@@ -67,18 +65,6 @@ export function ControlBar({
 			</span>
 			<div className="ml-auto flex items-center gap-3">
 				<RunStatusBadge status={run.status} />
-				<div className="flex items-center gap-1">
-					<Button
-						variant="ghost"
-						size="sm"
-						nativeButton={false}
-						render={<Link href={`/runs/${run.runId}/fork?step=${step}`} />}
-					>
-						<HugeiconsIcon icon={GitForkIcon} data-icon="inline-start" />
-						Fork at step {step}
-					</Button>
-					<ForkTreeSheet runId={run.runId} />
-				</div>
 				{/* Sized for the widest label ("Step 10 / 10") so the controls
 				    next to it do not move when the step gains a digit. */}
 				<span
@@ -162,6 +148,7 @@ export function ControlBar({
 						</Button>
 					)}
 				</div>
+				<ForkSheet runId={run.runId} step={step} />
 			</div>
 		</div>
 	);

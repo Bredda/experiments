@@ -108,10 +108,7 @@ export function ForkForm({
 				</form.Field>
 			</FieldGroup>
 
-			<div className="mt-6 flex justify-end gap-2">
-				<Button type="button" variant="secondary" onClick={() => router.back()}>
-					Cancel
-				</Button>
+			<div className="mt-6 flex justify-end">
 				<form.Subscribe selector={(state) => state.isSubmitting}>
 					{(isSubmitting) => (
 						<Button type="submit" disabled={isSubmitting}>

@@ -1,7 +1,8 @@
 name: PR title
 
-# Pull requests are squash-merged, so the title becomes the commit message that
-# release-please reads to pick the version and write the changelog.
+# Pull requests are merged with rebase and merge: release-please reads the
+# conventional commit messages of the branch. The title is checked too, so the
+# pull request is described the same way.
 on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened]

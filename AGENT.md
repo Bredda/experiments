@@ -94,7 +94,7 @@ Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/a
 
 ## Commits, releases and CI
 
-- Commit messages and **pull request titles are conventional commits** (`feat:`, `fix:`, `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`, optional scope). PRs are squash-merged, so the title is what lands in history and drives the version.
+- Commit messages and **pull request titles are conventional commits** (`feat:`, `fix:`, `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`, optional scope). PRs are merged with **rebase and merge**: each commit of the branch lands on `main` unchanged and release-please turns each into a changelog line, so keep commits atomic, green on their own and typed honestly (`feat` only for what a user can now do; plumbing is `refactor`). Do not leave fix-up commits: squash them locally before pushing. The PR title is still checked.
 - Releases are automated by release-please. Never edit `CHANGELOG.md`, the root `version` or `.release-please-manifest.json` by hand.
 - CI (`.github/workflows/ci.yml`) runs `pnpm lint`, `pnpm check-types` and `pnpm test` on pull requests and on `main`. A single `Docker build` job builds both images, only on pull requests that touch files the images use, and not on release PRs. Images are published once, by `release.yml`, when a release is created. Run the three commands before pushing.
 - Images: `apps/api/Dockerfile` and `apps/ui/Dockerfile`, built from the repo root. The api runs from TypeScript source with `tsx` (workspace packages have no build step), so `tsx` is a production dependency of `apps/api`. The ui is a Next.js standalone build; `NEXT_PUBLIC_API_URL` is baked in at build time.

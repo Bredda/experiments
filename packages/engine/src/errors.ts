@@ -30,3 +30,11 @@ export class StepNotFoundError extends Error {
 		this.name = "StepNotFoundError";
 	}
 }
+
+/** An intervention that cannot be applied: the experimenter asked for something impossible. */
+export class InvalidInterventionError extends Error {
+	constructor(reason: string) {
+		super(`Invalid intervention: ${reason}`);
+		this.name = "InvalidInterventionError";
+	}
+}

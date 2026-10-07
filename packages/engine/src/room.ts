@@ -1,6 +1,7 @@
 import type { AnyEvent } from "@experiments/types/events";
 import type { AgentId, RoomId } from "@experiments/types/ids";
 import { type RoomView, roomViewSchema } from "@experiments/types/room";
+import { isInterventionEvent, redactedEventIds } from "./interventions";
 
 export class Room {
 	readonly id: RoomId;
@@ -29,9 +30,15 @@ export class Room {
 			throw new Error(`Agent ${agentId} is not a member of room ${this.id}`);
 		}
 
+		// What the experimenter did is not part of the world, and what was
+		// redacted from this agent is not part of its world any more.
+		const redacted = redactedEventIds(events, agentId);
+
 		return roomViewSchema.parse({
 			roomId: this.id,
-			visibleEvents: events,
+			visibleEvents: events.filter(
+				(event) => !isInterventionEvent(event) && !redacted.has(event.id),
+			),
 			members: [...this.members],
 		});
 	}

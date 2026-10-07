@@ -41,7 +41,7 @@ One commit per phase, in this order (conventional commits, they feed release-ple
 - [x] Pure `buildPrompt`, injectable `runner`, `anthropicRunner.ts` as the only file importing `env`; per-model lazy cache. Files: `packages/ai/src/*`. **Verify:** `pnpm check-types`; the prompt text is unchanged.
 
 **3. `feat: define persona and model per agent in the scenario`**
-- [ ] `AGENT_MODELS`, `persona?`, `model?` on `agentConfigSchema`, rejected on non-`llm` agents; `LLMAgent` uses them. Files: `packages/types/src/scenario.ts`, `packages/engine/src/scenario/factory.ts`, `packages/ai/src/*`, `docs/agent/engine.md`. **Verify:** engine test on schema acceptance and rejection; `pnpm test`.
+- [x] `AGENT_MODELS`, `persona?`, `model?` on `agentConfigSchema`, rejected on non-`llm` agents; `LLMAgent` uses them. Files: `packages/types/src/scenario.ts`, `packages/engine/src/scenario/factory.ts`, `packages/ai/src/*`, `docs/agent/engine.md`. **Verify:** engine test on schema acceptance and rejection; `pnpm test`.
 
 **4. `feat(engine): add last_n memory strategy`**
 - [ ] `last_n` in `MEMORY_KINDS`, `LastNMemory`, registration, UI label. Files: `packages/types/src/memory.ts`, `packages/engine/src/memory/*`, `apps/ui/components/create-run/schemas.ts`. **Verify:** `memory.test.ts` (truncation, own proposals only, fewer than N events, determinism).

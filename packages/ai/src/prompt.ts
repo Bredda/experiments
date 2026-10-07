@@ -8,9 +8,11 @@ import type { MemorySlice } from "@experiments/types/memory";
  */
 export function buildPrompt(params: {
 	name: string;
+	persona?: string;
 	memory: MemorySlice;
 }): Prompt {
-	const base = `You entered an empty chatbot. Your name is ${params.name}.`;
+	// Without a persona the prompt is the one agents have always had.
+	const base = `${params.persona ?? "You entered an empty chatbot."} Your name is ${params.name}.`;
 	const history = memorySliceToPrompt(params.memory);
 
 	return [

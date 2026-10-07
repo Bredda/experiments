@@ -1,9 +1,8 @@
 import type { RunStore } from "@experiments/db";
-import type { MemoryType } from "@experiments/types";
 import type { AgentId, RoomId, RunId } from "@experiments/types/ids";
 import { newRunId } from "@experiments/types/ids";
 import type { RunRecord } from "@experiments/types/run";
-import type { ScenarioConfig } from "@experiments/types/scenario";
+import type { AgentConfig, ScenarioConfig } from "@experiments/types/scenario";
 import type { Agent } from "../agent";
 import { agentBehaviorRegistry } from "../agents/registry";
 import { RunNotFoundError } from "../errors";
@@ -12,18 +11,15 @@ import { RunConfig } from "../runConfig";
 import { createScheduler } from "../scheduler/registry";
 import { Simulation } from "../simulation";
 
-function buildAgent(params: {
-	agentId: string;
-	behavior: string;
-	roomId: RoomId;
-	memory?: MemoryType;
-}): Agent {
-	const factory = agentBehaviorRegistry.get(params.behavior);
+function buildAgent(config: AgentConfig, roomId: RoomId): Agent {
+	const factory = agentBehaviorRegistry.get(config.behavior);
 	return factory({
-		agentId: params.agentId as AgentId,
-		name: params.agentId,
-		roomId: params.roomId,
-		memoryType: params.memory,
+		agentId: config.id as AgentId,
+		name: config.id,
+		roomId,
+		memoryType: config.memory,
+		persona: config.persona,
+		model: config.model,
 	});
 }
 
@@ -42,14 +38,7 @@ export function buildRun(
 	const roomId = roomConfig.id as RoomId;
 	const room = new Room({ id: roomId, name: roomConfig.id });
 
-	const agents = scenario.agents.map((agent) =>
-		buildAgent({
-			agentId: agent.id,
-			behavior: agent.behavior,
-			roomId,
-			memory: agent.memory,
-		}),
-	);
+	const agents = scenario.agents.map((agent) => buildAgent(agent, roomId));
 
 	const simulation = new Simulation({
 		runId,

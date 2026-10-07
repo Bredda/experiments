@@ -6,6 +6,7 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./ids": "./src/ids.ts",
+		"./interventions": "./src/interventions.ts",
 		"./actions": "./src/actions.ts",
 		"./events": "./src/events.ts",
 		"./memory": "./src/memory.ts",

@@ -19,5 +19,7 @@ export const observationSchema = z.object({
 	room: roomViewSchema,
 	step: stepSchema,
 	time: timeSchema,
+	/** System instructions the experimenter gave this agent for this step only. */
+	instructions: z.array(z.string()).default([]),
 });
 export type Observation = z.infer<typeof observationSchema>;

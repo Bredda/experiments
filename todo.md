@@ -15,6 +15,6 @@ Working plan for the feature in progress. Strategy and horizons live in [roadmap
 
 ## Current plan
 
-None for now. Next candidates, in the roadmap's suggested order: re-run from a run and side-by-side comparison (axis 7, slices 7.1 and 7.2), then agents and memory (axis 3).
+None for now. Next candidates, in the roadmap's suggested order: side-by-side comparison (axis 7, slice 7.2), then agents and memory (axis 3).
 
 A plan in this file has: a goal, a short "where we are", **Decisions** (each with a recommendation, confirmed by the user before the tasks that depend on it), tasks grouped in phases (one commit per phase), each task with the files it touches and a **Verify** line, and a "Done when" block.

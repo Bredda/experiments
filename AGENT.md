@@ -77,7 +77,7 @@ These are behavioral contracts. Do not break them without being asked to.
 - **Time advances every step, even when nobody speaks.** Silence is a simulation state. Never skip or collapse silent steps.
 - Simulation time (`SimulationClock`) and wall-clock time are separate. Wall-clock time must never influence behavior.
 - Events are immutable facts with an explicit `type`; actions are discriminated by an explicit `type` too. Never infer a type from payload shape. Build events through their Zod schema (`xxxSchema.parse`).
-- Reproducibility: same scenario + seed → same trajectory. All randomness goes through `RunConfig.rngForStep(step)` (`SeededRandom`, derived from seed and step); never use `Math.random()`. `runId` and event `id` are execution-specific, so compare normalized behavior rather than raw artifacts.
+- Reproducibility: same scenario + seed → same trajectory. All randomness goes through `RunConfig.rngForStep(step)` (`SeededRandom`, derived from seed and step); never use `Math.random()`. `runId` and event `id` are execution-specific, so compare normalized behavior rather than raw artifacts. A fork copies its parent's events up to a step instead of recomputing them: it is reproducible from scenario + seed + lineage (see [docs/agent/engine.md](docs/agent/engine.md)).
 - Agents never see the whole world. They get an `Observation` containing a `RoomView`; visibility rules live in `Room.view`.
 
 Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/agent/engine.md).

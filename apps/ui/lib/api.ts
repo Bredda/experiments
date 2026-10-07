@@ -2,6 +2,8 @@ import type { Observation } from "@experiments/types";
 import type { AnyEvent } from "@experiments/types/events";
 import type {
 	EventRecord,
+	ForkRunRequest,
+	ForkTree,
 	RunRecord,
 	StepResult,
 } from "@experiments/types/run";
@@ -50,4 +52,22 @@ export async function getStepObservations(
 		`runs/${runId}/steps/${step}/observations`,
 		{ cache: "no-store" },
 	);
+}
+
+/** Forks a run at `request.step`: the new run starts with a copy of the history up to there. */
+export async function forkRun(
+	runId: string,
+	request: ForkRunRequest,
+): Promise<RunRecord> {
+	return await apiFetch<RunRecord>(`runs/${runId}/fork`, {
+		method: "POST",
+		body: JSON.stringify(request),
+	});
+}
+
+/** Every run connected by forks to this one: ancestors, siblings and descendants. */
+export async function getForkTree(runId: string): Promise<ForkTree> {
+	return await apiFetch<ForkTree>(`runs/${runId}/tree`, {
+		cache: "no-store",
+	});
 }

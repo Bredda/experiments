@@ -14,6 +14,14 @@ stepRun:    loadSimulation(store, runId) ─▶ simulation.step() ─▶ status 
 
 Run status is `created | running | completed` (`runStatusSchema`). `stepRun` sets `running` after the first step and `completed` once the clock reaches `scenario.steps`; one step at a time per run is enforced in-process.
 
+## Forks
+
+`forkRun(store, runId, { step, name, purpose })` creates a run that starts with a **copy** of the parent's events up to `step` (inclusive; 0 keeps only the `agent.joined` arrivals), with the parent's scenario (renamed) and seed. Payloads are copied as they are, event ids included, so within one run ids stay unique and across runs the shared prefix is recognizable. The fork's status follows its step (`created` at 0, `completed` at `scenario.steps`, else `running`) and from there it is stepped like any run: `loadSimulation`, observations and export need no special case. A step outside 0..latest played step throws `StepNotFoundError`. The parent is never modified.
+
+Reproducibility of a fork: its history up to `step` is copied, not recomputed, so a fork is reproducible from scenario + seed + lineage. With deterministic agents it continues exactly like its parent (covered in `fork.test.ts`); with LLM agents it is a new sample from `step` on.
+
+`getForkTree(store, runId)` returns the whole tree that contains a run (root, ancestors, siblings, descendants) as nodes with parent, fork step, purpose, planned and played steps.
+
 ## Simulation.step()
 
 `step()` is async because agents may call out to an LLM, and it is **atomic**: all events are persisted in one transaction at the end, and if any agent throws nothing is recorded and the clock is rewound.
@@ -60,6 +68,6 @@ A scenario is a `ScenarioConfig` (`scenarioConfigSchema`, strict: unknown keys a
 
 ## Persistence
 
-`RunStore` (SQLite at `DB_PATH`, default `./simulation.db`) has three tables: `runs`, `scenarios` (scenario JSON per run), `events` (append-only, `payload_json` holds the full event). Event rows get an autoincrement `id`; `listEvents(runId, sinceId)` supports incremental reads.
+`RunStore` (SQLite at `DB_PATH`, default `./simulation.db`) has four tables: `runs`, `scenarios` (scenario JSON per run), `events` (append-only, `payload_json` holds the full event) and `forks` (`run_id`, `parent_run_id`, `step`, `purpose`: one row per forked run; it is a separate table so existing databases need no migration). `createFork` writes the run, its scenario, its lineage and the copied events in one transaction, and `getForkTree` walks the lineage with recursive queries. `deleteRun` is transactional and fails, deleting nothing, while other runs were forked from the run. Event rows get an autoincrement `id`; `listEvents(runId, sinceId)` supports incremental reads.
 
 `appendEvents` is transactional. `EventLog` is the in-memory log used to build room views and is only extended after a successful write. It can still dump JSONL via `exportEvents`, but JSONL files are no longer the run artifact.

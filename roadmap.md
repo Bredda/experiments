@@ -25,7 +25,7 @@ Ideas and cleanups that are not part of an axis below live in [backlog.md](backl
 
 ## Overview
 
-Where the MVP stands: define, run, inspect and navigate a run work. The last two steps do not: there is no way to start from an existing run and change one parameter (the create-run form is filled from scratch every time), and nothing puts two runs side by side. Both belong to axis 7, which is why its first slice is the current priority; the parameters worth varying come from axes 3, 5 and 6.
+Where the MVP stands: define, run, inspect, navigate and fork a run work: a run can be forked at any played step, and the fork tree of a run is browsable. The last two steps are only half there: a fork keeps the parent's scenario and seed, so it re-samples from step N but does not yet change a parameter (editing the scenario of a fork is in the backlog), and nothing puts two runs side by side. The comparison is slice 7.2, now the current priority; the parameters worth varying come from axes 3, 5 and 6.
 
 | # | Axis | Horizon | Status |
 | --- | --- | --- | --- |
@@ -35,9 +35,9 @@ Where the MVP stands: define, run, inspect and navigate a run work. The last two
 | 4 | Interventions | Later | Not started |
 | 5 | Environment | Later | Single room; the engine rejects several |
 | 6 | Scheduling | Later | Two baseline policies, one speaker per step |
-| 7 | Measurement and comparison | Now (7.1, 7.2), then Later | Not started |
+| 7 | Measurement and comparison | Now (7.2), then Later | 7.1 done, rest not started |
 
-Suggested order: 7.1 and 7.2 (close the MVP loop), then 3 (it also brings the model metadata that 7.4 needs), then 4, 5 and 6. Axis 4 benefits from 3 (memory) and from the fork described there. Axis 6 depends on 5 as soon as scheduling becomes per room. 7.3 and 7.4 are pulled in when an experiment needs them.
+Suggested order: 7.2 (closes the MVP loop; 7.1 is done), then 3 (it also brings the model metadata that 7.4 needs), then 4, 5 and 6. Axis 4 benefits from 3 (memory) and from the fork described there. Axis 6 depends on 5 as soon as scheduling becomes per room. 7.3 and 7.4 are pulled in when an experiment needs them.
 
 ## 1. Run lifecycle
 
@@ -80,7 +80,7 @@ Examples: inserting a system prompt for a single step, injecting multimodal cont
 
 Two consequences of the current design:
 
-- A live intervention can only affect the next step. Intervening at a past step means forking: a new run built from the events up to step N (the engine already rebuilds a simulation from stored events), then diverging. Fork is the first building block, and it also gives the "change one parameter at step N" experiment.
+- A live intervention can only affect the next step. Intervening at a past step means forking: a new run built from the events up to step N, then diverging. That building block exists since 7.1 (`forkRun`, with the fork tree recorded); what is left is the divergence itself, interventions and changed parameters applied from step N.
 - Memory has no state to edit. Editing or removing memory is expressed as an intervention event that the visibility and memory code honors when building a view (for instance a redaction), not as a mutation. Each new intervention is a new event type.
 
 **Done when:** an experimenter can alter what a chosen agent perceives or remembers at a chosen step, and the effect is visible and attributable in the trajectory.
@@ -111,7 +111,7 @@ Two baseline policies exist (`highest_urgency`, `weighted_random`); both pick at
 
 **Goal:** make runs directly comparable.
 
-1. **7.1 Re-run from a run.** Open the create-run form prefilled with an existing run's scenario to change one thing and launch again. No new API: it is `POST /runs` with an edited scenario. With deterministic agents and an unchanged scenario this reproduces the trajectory, which doubles as a visible reproducibility check.
+1. **7.1 Fork from a run. Done.** Replaces the "re-run from a run" idea. `POST /runs/:id/fork` creates a run that starts with a copy of the parent's events up to a step (0 keeps only the arrivals), with the parent's scenario and seed, a name (default `<origin> - fork #n`) and an optional purpose. The lineage (parent, fork step, purpose) is stored, and the run page shows the fork tree of a run (ancestors, siblings, descendants) as a git-style graph in a full-screen sheet. With deterministic agents a fork carries on exactly like its parent, which doubles as a visible reproducibility check; with LLM agents it is a new sample from step N. Fork at step 0 is the former re-run. The fork does not change the scenario yet (backlog).
 2. **7.2 Side-by-side comparison.** Two runs of the same scenario with a changed parameter (first case: scheduler A versus scheduler B, same agents and seed), shown next to each other and navigated with the same step cursor, with the first step where they diverge marked.
 3. **7.3 Metrics and export.** Derived trajectory metrics (participation balance, silence duration, response latency) and data export of a run. The engine can already write a run's events as JSONL, but nothing exposes it.
 4. **7.4 Cost and observability.** Token and cost metrics per run, then traces and event-to-trace correlation. This observes the engine without defining it. When run cost is surfaced, count the model calls of failed steps too: a step that fails leaves no events, but the calls of the agents that had already answered (or were still in flight) were billed.

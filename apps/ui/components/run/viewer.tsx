@@ -6,16 +6,20 @@ import { useMemo, useState } from "react";
 import {
 	type EventFilter,
 	eventsUntil,
+	interventionLabel,
+	interventionTarget,
 	lastStep,
 	NO_FILTER,
 	roomSummaries,
 } from "@/lib/run-view";
 import { Chat } from "./chat";
 import { ControlBar } from "./control-bar";
+import { DraftsTray } from "./drafts-tray";
 import { RunEvents } from "./events";
 import { Inspector } from "./inspector";
 import { RoomStrip } from "./room-strip";
 import type { RunSelection } from "./selection";
+import { useDrafts } from "./use-drafts";
 import { useRunExecution } from "./use-run-execution";
 
 export function RunViewer({
@@ -42,6 +46,23 @@ export function RunViewer({
 	const latestStep = lastStep(events);
 	const step = Math.min(cursor ?? latestStep, latestStep);
 	const shownEvents = useMemo(() => eventsUntil(events, step), [events, step]);
+	const live = cursor === null || cursor >= latestStep;
+	const target = interventionTarget({
+		live,
+		completed: run.status === "completed",
+		step,
+		scenarioSteps: run.scenario.steps,
+	});
+	const { drafts, add, remove, clear } = useDrafts(step);
+	const draftLabels = drafts.map((draft) =>
+		interventionLabel(draft, shownEvents),
+	);
+	// Drafts go with the next step only when they were made at the live step;
+	// made on a past step, they can only go with a fork.
+	const stepWith =
+		target.mode === "queue" && drafts.length > 0
+			? { interventions: drafts, onApplied: clear }
+			: undefined;
 	const rooms = useMemo(
 		() => roomSummaries(run, shownEvents),
 		[run, shownEvents],
@@ -59,7 +80,7 @@ export function RunViewer({
 				run={run}
 				step={step}
 				latestStep={latestStep}
-				live={cursor === null || cursor >= latestStep}
+				live={live}
 				// Reaching the latest step means following the run again.
 				onCursor={(next) =>
 					setCursor(next >= latestStep ? null : Math.max(next, 0))
@@ -68,11 +89,21 @@ export function RunViewer({
 				pending={pending}
 				playing={playing}
 				pausing={pausing}
-				onPlay={() => play()}
+				onPlay={() => play(stepWith)}
 				onPause={pause}
 				eventsOpen={eventsOpen}
 				onToggleEvents={() => setEventsOpen((open) => !open)}
-				onNextStep={() => nextStep()}
+				onNextStep={() => nextStep(stepWith)}
+				tray={
+					<DraftsTray
+						labels={draftLabels}
+						target={target}
+						onRemove={remove}
+						onClear={clear}
+					/>
+				}
+				drafts={drafts}
+				draftLabels={draftLabels}
 			/>
 			<div className="flex min-h-0 flex-1">
 				{eventsOpen && (
@@ -119,6 +150,7 @@ export function RunViewer({
 							step={step}
 							onSelect={setSelection}
 							onClose={() => setSelection(null)}
+							intervene={{ target, drafts, onAdd: add, onRemove: remove }}
 						/>
 					</aside>
 				)}

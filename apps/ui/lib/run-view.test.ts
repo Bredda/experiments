@@ -22,10 +22,12 @@ import {
 	eventsUntil,
 	filterEvents,
 	interventionLabel,
+	interventionTarget,
 	lastStep,
 	modelCallLabel,
 	NO_FILTER,
 	observationSummary,
+	redactionCandidates,
 	roomSummaries,
 } from "./run-view";
 
@@ -394,6 +396,84 @@ describe("interventionLabel", () => {
 
 	it("applies at the step after the one it follows", () => {
 		expect(appliesAtStep(instructed("bob", "x", 4))).toBe(5);
+	});
+});
+
+describe("interventionTarget", () => {
+	const at = (params: { live: boolean; completed: boolean; step: number }) =>
+		interventionTarget({ ...params, scenarioSteps: 5 });
+
+	it("queues for the next step on the live step of a run that is not over", () => {
+		expect(at({ live: true, completed: false, step: 3 })).toEqual({
+			mode: "queue",
+			step: 3,
+			appliesAt: 4,
+			available: true,
+		});
+	});
+
+	it("forks from a past step, whatever the state of the run", () => {
+		expect(at({ live: false, completed: false, step: 2 }).mode).toBe("fork");
+		expect(at({ live: false, completed: true, step: 2 }).mode).toBe("fork");
+	});
+
+	it("forks from the last step of a completed run, where there is nothing left to apply to", () => {
+		expect(at({ live: true, completed: true, step: 5 })).toMatchObject({
+			mode: "fork",
+			available: false,
+		});
+		expect(at({ live: false, completed: true, step: 4 }).available).toBe(true);
+	});
+});
+
+describe("redactionCandidates", () => {
+	const hello = published("alice", "main", 1);
+	const mine = proposedSpeak("bob", "main", 1);
+	const theirs = proposedSilent("alice", 1);
+	const later = published("alice", "main", 2);
+	const events: AnyEvent[] = [
+		joined("alice", "main"),
+		joined("bob", "main"),
+		mine,
+		theirs,
+		hello,
+		later,
+	];
+
+	it("offers the room's messages and the agent's own proposals, newest first, never another agent's proposals", () => {
+		const candidates = redactionCandidates(events, "bob");
+
+		expect(candidates.map((c) => c.eventId)).toEqual([
+			later.id,
+			hello.id,
+			mine.id,
+		]);
+		expect(candidates.map((c) => c.kind)).toEqual([
+			"message",
+			"message",
+			"proposal",
+		]);
+	});
+
+	it("includes what happened at the step the view shows, which its own observation does not yet", () => {
+		expect(
+			redactionCandidates(events, "bob").some((c) => c.eventId === later.id),
+		).toBe(true);
+	});
+
+	it("flags what an earlier intervention already removed, for that agent only", () => {
+		const log: AnyEvent[] = [...events, redacted("bob", hello.id, 2)];
+
+		expect(
+			redactionCandidates(log, "bob").find((c) => c.eventId === hello.id),
+		).toMatchObject({ redacted: true });
+		expect(
+			redactionCandidates(log, "alice").find((c) => c.eventId === hello.id),
+		).toMatchObject({ redacted: false });
+	});
+
+	it("has nothing to offer before anyone spoke or proposed", () => {
+		expect(redactionCandidates([joined("bob", "main")], "bob")).toEqual([]);
 	});
 });
 

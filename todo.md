@@ -17,51 +17,20 @@ Working plan for the feature in progress. Strategy and horizons live in [roadmap
 
 ### Goal
 
-Axis 3 of the roadmap: the same scenario can run with different personas, models or memory configurations by changing only its configuration. The model metadata of a call is recorded and the `llm` prompt is testable offline.
+Close the one open point of axis 3 (agents and memory, all other work is merged into the branch `feat/agents-memory`): confirm against the real API that the token usage of an `llm` call is recorded.
 
 ### Where we are
 
-`packages/ai` hard-codes `claude-haiku-4-5` and one persona sentence, `agentConfigSchema` is `{ id, behavior, memory? }`, `sliding_window` is the only memory kind (it keeps the whole visible history), `agent.prompt_built` carries the prompt only, and `packages/ai` has no test runner.
+The runner (`packages/ai/src/anthropicRunner.ts`) sums `usage_metadata` over the AI messages returned by LangChain and the engine stores it on `agent.prompt_built`. Both are covered offline with fakes, but a real call was never made: the `ANTHROPIC_API_KEY` in `.env` is rejected by the API (401), so whether LangChain fills `usage_metadata` on the structured-output path is unverified. The runner tolerates its absence (the event then carries the model only).
 
-### Decisions
+### Tasks
 
-- Second memory strategy: `last_n`, with N fixed in the code (5). `sliding_window` stays as it is, stored runs are untouched. A parametrizable N (memory config object) is not part of this plan. Confirmed.
-- `model` is a closed Zod enum in `packages/types`, a select in the UI. Confirmed.
-- Model metadata (`model`, `usage`) is added as optional fields on `agent.prompt_built`, no new event type. Confirmed.
-- `persona` and `model` are only valid on `llm` agents (the scenario is rejected otherwise). A missing persona keeps today's prompt text, so existing scenarios behave as before. No recommendation left open.
-
-### Phases
-
-One commit per phase, in this order (conventional commits, they feed release-please).
-
-**1. `refactor(engine): pass agent behavior factories a params object`**
-- [x] `AgentBehaviorFactory` takes one params object instead of four positional arguments; update the registrations, `buildAgent` and the `llm` registration in `packages/ai/src/index.ts`. Files: `packages/engine/src/agents/registry.ts`, `scenario/factory.ts`, `packages/ai/src/index.ts`. **Verify:** `pnpm check-types`, `pnpm test`, no behavior change.
-
-**2. `refactor(ai): extract llm prompt building and model runner`**
-- [x] Pure `buildPrompt`, injectable `runner`, `anthropicRunner.ts` as the only file importing `env`; per-model lazy cache. Files: `packages/ai/src/*`. **Verify:** `pnpm check-types`; the prompt text is unchanged.
-
-**3. `feat: define persona and model per agent in the scenario`**
-- [x] `AGENT_MODELS`, `persona?`, `model?` on `agentConfigSchema`, rejected on non-`llm` agents; `LLMAgent` uses them. Files: `packages/types/src/scenario.ts`, `packages/engine/src/scenario/factory.ts`, `packages/ai/src/*`, `docs/agent/engine.md`. **Verify:** engine test on schema acceptance and rejection; `pnpm test`.
-
-**4. `feat(engine): add last_n memory strategy`**
-- [x] `last_n` in `MEMORY_KINDS`, `LastNMemory`, registration, UI label. Files: `packages/types/src/memory.ts`, `packages/engine/src/memory/*`, `apps/ui/components/create-run/schemas.ts`. **Verify:** `memory.test.ts` (truncation, own proposals only, fewer than N events, determinism).
-
-**5. `feat: record model and token usage on agent.prompt_built`**
-- [x] Optional `meta` on `actionProposalSchema`, optional `model` and `usage` on `agentPromptBuiltSchema`, copied by `Simulation`; the runner fills them. Files: `packages/types/src/{actions,events}.ts`, `packages/engine/src/simulation.ts`, `packages/ai/src/*`. **Verify:** engine test (event carries the metadata, persisted and restored; absent metadata unchanged).
-- [ ] Real run: confirm that LangChain fills `usage_metadata` on the structured-output path (the runner reads it and tolerates its absence). Not done: the `ANTHROPIC_API_KEY` in `.env` is rejected by the API (401). Needs a valid key and a one-step run with an `llm` agent.
-
-**6. `test(ai): run the llm agent offline with a fake runner`**
-- [x] `test` script, vitest and config in `packages/ai`; tests for the prompt with and without persona, memory in the prompt, one system message, proposal mapping, metadata. Update the Testing section of `AGENT.md`. **Verify:** `pnpm --filter @experiments/ai test`, no API key needed.
-
-**7. `feat(ui): configure persona, model and memory per agent and show model usage`**
-- [x] Persona textarea and model select (for `llm` only) in the agent dialog, agent card, `toScenarioConfig`; persona and model in `agentSummary` and the agent panel; model and tokens next to the prompt. Files: `apps/ui/components/create-run/*`, `apps/ui/components/run/*`, `apps/ui/lib/run-view.ts`, `docs/agent/api-ui.md`. **Verify:** `pnpm --filter ui test` for the `lib/` part, manual check of the form and the run page.
-
-**8. `docs: mark agents and memory done`**
-- [ ] `roadmap.md` status of axis 3, `docs/agent/engine.md` final pass, this plan back to "None". **Verify:** `pnpm lint`.
+- [ ] Put a valid `ANTHROPIC_API_KEY` in `.env`, run a one-step scenario with an `llm` agent (for instance `persona`, `model: claude-haiku-4-5-20251001`, `memory: last_n`) and read its `agent.prompt_built` event. **Verify:** it has `model` and `usage` with non-zero `inputTokens` and `outputTokens`, and the prompt starts with the persona. If `usage` is missing, fix the extraction in `anthropicRunner.ts` and add a test of `sumUsage` on a realistic message list.
+- [ ] Then replace this plan with "None" and drop the "Left over" sentence about it in `roadmap.md` (axis 3).
 
 ### Done when
 
-The same scenario runs with different personas, models or memory kinds by changing only its configuration, `agent.prompt_built` records the model and the token usage, the `llm` prompt is covered by offline tests, and `pnpm lint`, `pnpm check-types` and `pnpm test` pass.
+A real run stores the model and the token usage of each `llm` agent call.
 
 ---
 

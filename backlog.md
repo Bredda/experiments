@@ -45,8 +45,9 @@ Each line says what, and why it came up. Items marked *(from todo)* were the pre
 - Counterfactual selection on recorded proposals: for a given step, show what another scheduler would have picked from the same `action.proposed` events, without calling any model. Only valid for that step (later steps diverge once the history differs), but cheap and useful for 6.
 - A richer action vocabulary: a message addressed to a specific agent (the `mentioned` behavior infers mentions from text), leaving a room, reacting without speaking. Closed sets live in `packages/types`; each is a new action type and event.
 - Wall-clock durations of steps and model calls as run metadata, kept outside the events so they cannot influence behavior (the engine invariant). Would feed response-latency style metrics.
-- A library of reusable agent personas shared across scenarios (follows roadmap 3.1).
-- Mixed providers or models in the same room as an experimental variable (follows roadmap 3.1; `packages/ai` is already the only place that knows a provider).
+- A library of reusable agent personas shared across scenarios (a persona is a free text in the scenario today).
+- Memory as a config object instead of a kind name, so the size of the `last_n` window (fixed at 5 today) becomes a variable; and a summarizing memory (an extra model call per step, so it needs an event that records the summary).
+- Mixed providers in the same room as an experimental variable (models already differ per agent among the Anthropic ones; `packages/ai` is the only place that knows a provider, `anthropicRunner.ts` the only file to change).
 
 ## On hold
 

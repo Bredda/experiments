@@ -1,6 +1,7 @@
 import z from "zod";
 import { anyEventSchema } from "./events";
 import { runIdSchema } from "./ids";
+import { interventionSchema, MAX_INTERVENTIONS } from "./interventions";
 import { timeSchema } from "./primitives";
 import { SEED_PATTERN, scenarioConfigSchema } from "./scenario";
 
@@ -44,6 +45,18 @@ export const stepResultSchema = z.object({
 });
 export type StepResult = z.infer<typeof stepResultSchema>;
 
+/** Interventions to apply, between the last played step and the next one. */
+const interventionsSchema = z
+	.array(interventionSchema)
+	.max(MAX_INTERVENTIONS)
+	.default([]);
+
+/** Body of a request to advance a run: what to apply before the step. */
+export const stepRequestSchema = z.object({
+	interventions: interventionsSchema,
+});
+export type StepRequest = z.input<typeof stepRequestSchema>;
+
 /** Body of a fork request: the run to fork comes from the URL. */
 export const forkRunRequestSchema = z.object({
 	/** Last step of the parent that the fork keeps: 0 (just the arrivals) to the latest played step. */
@@ -56,6 +69,8 @@ export const forkRunRequestSchema = z.object({
 		.max(500)
 		.nullish()
 		.transform((purpose) => purpose || null),
+	/** Applied to the fork before its first step, so they take effect at `step + 1`. */
+	interventions: interventionsSchema,
 });
 export type ForkRunRequest = z.input<typeof forkRunRequestSchema>;
 

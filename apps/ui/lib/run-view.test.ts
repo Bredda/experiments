@@ -503,6 +503,8 @@ describe("EVENT_TYPES", () => {
 			"action.selected",
 			"agent.joined",
 			"agent.prompt_built",
+			"intervention.memory_redacted",
+			"intervention.prompt_injected",
 			"message.published",
 		]);
 	});

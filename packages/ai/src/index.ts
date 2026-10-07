@@ -6,6 +6,6 @@ export { type Proposal, proposalSchema } from "./proposal";
 
 agentBehaviorRegistry.register(
 	"llm",
-	(agentId, name, roomId, memoryType) =>
+	({ agentId, name, roomId, memoryType }) =>
 		new LLMAgent(agentId, name, roomId, memoryType),
 );

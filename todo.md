@@ -35,7 +35,7 @@ Axis 3 of the roadmap: the same scenario can run with different personas, models
 One commit per phase, in this order (conventional commits, they feed release-please).
 
 **1. `refactor(engine): pass agent behavior factories a params object`**
-- [ ] `AgentBehaviorFactory` takes one params object instead of four positional arguments; update the registrations, `buildAgent` and the `llm` registration in `packages/ai/src/index.ts`. Files: `packages/engine/src/agents/registry.ts`, `scenario/factory.ts`, `packages/ai/src/index.ts`. **Verify:** `pnpm check-types`, `pnpm test`, no behavior change.
+- [x] `AgentBehaviorFactory` takes one params object instead of four positional arguments; update the registrations, `buildAgent` and the `llm` registration in `packages/ai/src/index.ts`. Files: `packages/engine/src/agents/registry.ts`, `scenario/factory.ts`, `packages/ai/src/index.ts`. **Verify:** `pnpm check-types`, `pnpm test`, no behavior change.
 
 **2. `refactor(ai): extract llm prompt building and model runner`**
 - [ ] Pure `buildPrompt`, injectable `runner`, `anthropicRunner.ts` as the only file importing `env`; per-model lazy cache. Files: `packages/ai/src/*`. **Verify:** `pnpm check-types`; the prompt text is unchanged.

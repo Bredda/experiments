@@ -1,5 +1,6 @@
 import type { Observation } from "@experiments/types";
 import type { AnyEvent } from "@experiments/types/events";
+import type { Intervention } from "@experiments/types/interventions";
 import type {
 	EventRecord,
 	ForkRunRequest,
@@ -36,10 +37,19 @@ export async function getRunEvents(runId: string): Promise<AnyEvent[]> {
 	return records.map((r) => r.payload);
 }
 
-/** Advances the run by one step; resolves with the updated run and the events the step added. */
-export async function stepRun(runId: string): Promise<StepResult> {
+/**
+ * Advances the run by one step; resolves with the updated run and the events
+ * the step added. `interventions` are recorded with the step and take effect
+ * at it; with none, the request has no body.
+ */
+export async function stepRun(
+	runId: string,
+	interventions: readonly Intervention[] = [],
+): Promise<StepResult> {
 	return await apiFetch<StepResult>(`runs/${runId}/steps/next`, {
 		method: "POST",
+		body:
+			interventions.length > 0 ? JSON.stringify({ interventions }) : undefined,
 	});
 }
 

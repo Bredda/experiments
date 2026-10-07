@@ -2,6 +2,8 @@
 
 import type { AnyEvent } from "@experiments/types/events";
 import {
+	Eraser01Icon,
+	MagicWand01Icon,
 	Target01Icon,
 	UserAdd01Icon,
 	VolumeMute02Icon,
@@ -137,6 +139,27 @@ function TimelineEntry({
 							)
 							.join(" · ")}
 						)
+					</MarkerContent>
+				</ClickableMarker>
+			);
+
+		case "intervention":
+			return (
+				<ClickableMarker
+					selected={selectedEventId === item.eventId}
+					onSelect={() => onSelectEvent(item.eventId)}
+				>
+					<MarkerIcon>
+						<HugeiconsIcon
+							icon={
+								item.type === "intervention.memory_redacted"
+									? Eraser01Icon
+									: MagicWand01Icon
+							}
+						/>
+					</MarkerIcon>
+					<MarkerContent>
+						{item.label} · applies at step {item.appliesAt}
 					</MarkerContent>
 				</ClickableMarker>
 			);

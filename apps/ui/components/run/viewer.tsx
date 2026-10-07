@@ -68,11 +68,11 @@ export function RunViewer({
 				pending={pending}
 				playing={playing}
 				pausing={pausing}
-				onPlay={play}
+				onPlay={() => play()}
 				onPause={pause}
 				eventsOpen={eventsOpen}
 				onToggleEvents={() => setEventsOpen((open) => !open)}
-				onNextStep={nextStep}
+				onNextStep={() => nextStep()}
 			/>
 			<div className="flex min-h-0 flex-1">
 				{eventsOpen && (

@@ -3,6 +3,8 @@ import {
 	type AgentPromptBuilt,
 	type AnyEvent,
 	anyEventSchema,
+	type InterventionMemoryRedacted,
+	type InterventionPromptInjected,
 } from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
 
@@ -74,7 +76,59 @@ export function eventRoomId(
 				? event.action.roomId
 				: rooms.get(event.agentId);
 		case "agent.prompt_built":
+		case "intervention.prompt_injected":
+		case "intervention.memory_redacted":
 			return rooms.get(event.agentId);
+	}
+}
+
+export type InterventionEvent =
+	| InterventionPromptInjected
+	| InterventionMemoryRedacted;
+
+export function isInterventionEvent(
+	event: AnyEvent,
+): event is InterventionEvent {
+	return (
+		event.type === "intervention.prompt_injected" ||
+		event.type === "intervention.memory_redacted"
+	);
+}
+
+/** How a redacted event reads in the UI: what was said, or whose proposal it was. */
+export function eventExcerpt(
+	events: readonly AnyEvent[],
+	eventId: string,
+): string {
+	const target = events.find((event) => event.id === eventId);
+
+	if (target?.type === "message.published") {
+		return `${target.agentId}: "${target.content}"`;
+	}
+	if (target?.type === "action.proposed") {
+		return `its proposal at step ${target.step}`;
+	}
+	return "an event";
+}
+
+/**
+ * An intervention is recorded at the step it follows and takes effect at the
+ * next one: this is the step a reader should look at to see its effect.
+ */
+export function appliesAtStep(event: InterventionEvent): number {
+	return event.step + 1;
+}
+
+/** One line for an intervention: what was done, to whom. */
+export function interventionLabel(
+	event: InterventionEvent,
+	events: readonly AnyEvent[],
+): string {
+	switch (event.type) {
+		case "intervention.prompt_injected":
+			return `Instruction to ${event.agentId}: "${event.content}"`;
+		case "intervention.memory_redacted":
+			return `Redacted from ${event.agentId}: ${eventExcerpt(events, event.targetEventId)}`;
 	}
 }
 
@@ -142,12 +196,26 @@ export type TimelineItem =
 			/** Every agent that proposed to speak in that room, highest urgency first. */
 			candidates: { agentId: string; urgency: number }[];
 	  }
-	| { kind: "silence"; key: string; step: number };
+	| { kind: "silence"; key: string; step: number }
+	| {
+			kind: "intervention";
+			key: string;
+			eventId: string;
+			/** Which intervention it is, for the icon. */
+			type: InterventionEvent["type"];
+			/** The step it follows. */
+			step: number;
+			appliesAt: number;
+			agentId: string;
+			label: string;
+	  };
 
 /**
  * Chat-style reading of the event log: arrivals, then for each step a marker
  * followed by what was said, or by a silence marker when nobody spoke. A
  * selection marker explains who won when several agents wanted to speak.
+ * An intervention comes after the step it follows (before the first step when
+ * it follows none), since it takes effect at the next one.
  * `roomId` limits the view to one room; null shows every room.
  */
 export function buildTimeline(
@@ -161,6 +229,24 @@ export function buildTimeline(
 	const finalStep = lastStep(events);
 	const items: TimelineItem[] = [];
 
+	const interventionsAfter = (step: number): TimelineItem[] =>
+		events.flatMap((event) =>
+			isInterventionEvent(event) && event.step === step && inRoom(event)
+				? [
+						{
+							kind: "intervention" as const,
+							key: event.id,
+							eventId: event.id,
+							type: event.type,
+							step,
+							appliesAt: appliesAtStep(event),
+							agentId: event.agentId,
+							label: interventionLabel(event, events),
+						},
+					]
+				: [],
+		);
+
 	for (const event of events) {
 		if (event.type === "agent.joined" && inRoom(event)) {
 			items.push({
@@ -171,6 +257,7 @@ export function buildTimeline(
 			});
 		}
 	}
+	items.push(...interventionsAfter(0));
 
 	for (let step = 1; step <= finalStep; step++) {
 		const stepEvents = events.filter((event) => event.step === step);
@@ -229,6 +316,7 @@ export function buildTimeline(
 		if (!spoke) {
 			items.push({ kind: "silence", key: `silence-${step}`, step });
 		}
+		items.push(...interventionsAfter(step));
 	}
 
 	return items;
@@ -257,6 +345,8 @@ export type AgentSummary = {
 	timesSelected: number;
 	speakProposals: number;
 	silentProposals: number;
+	/** Interventions the experimenter applied to this agent so far. */
+	interventionCount: number;
 	/** Latest first, at most `RECENT_PROPOSALS`. */
 	recentProposals: AgentProposal[];
 };
@@ -283,9 +373,12 @@ export function agentSummary(
 
 	const proposals: AgentProposal[] = [];
 	let messageCount = 0;
+	let interventionCount = 0;
 
 	for (const event of events) {
 		if (event.agentId !== agentId) continue;
+
+		if (isInterventionEvent(event)) interventionCount++;
 
 		if (event.type === "message.published") messageCount++;
 
@@ -314,6 +407,7 @@ export function agentSummary(
 		timesSelected: selectedSteps.size,
 		speakProposals: proposals.filter((p) => p.type === "speak").length,
 		silentProposals: proposals.filter((p) => p.type === "stay_silent").length,
+		interventionCount,
 		recentProposals: proposals.slice(-RECENT_PROPOSALS).reverse(),
 	};
 }
@@ -334,11 +428,26 @@ export type ObservationSummary = {
 	earlierProposals: number;
 	/** The prompt the agent was sent at that step, for behaviors that build one. */
 	promptEventId: string | undefined;
+	/** The experimenter's instructions the agent was given for that step only. */
+	instructions: string[];
+	/**
+	 * What the experimenter removed from this agent's view before that step,
+	 * which is why it is missing from `messages`. Read from the run's log: the
+	 * observation itself no longer holds it.
+	 */
+	redacted: {
+		/** The redaction event. */
+		eventId: string;
+		/** The event that was removed from the view. */
+		targetEventId: string;
+		label: string;
+	}[];
 };
 
 /**
  * What one agent observed at the start of a step. `events` is the run's log,
- * used only to find the prompt recorded for that step.
+ * used to find the prompt recorded for that step and the redactions the
+ * observation does not show.
  */
 export function observationSummary(
 	observation: Observation,
@@ -371,6 +480,21 @@ export function observationSummary(
 			event.agentId === observation.agentId,
 	);
 
+	// An intervention recorded before the step is in effect at it, never later.
+	const redacted: ObservationSummary["redacted"] = events.flatMap((event) =>
+		event.type === "intervention.memory_redacted" &&
+		event.agentId === observation.agentId &&
+		event.step < observation.step
+			? [
+					{
+						eventId: event.id,
+						targetEventId: event.targetEventId,
+						label: eventExcerpt(events, event.targetEventId),
+					},
+				]
+			: [],
+	);
+
 	return {
 		step: observation.step,
 		time: observation.time,
@@ -379,6 +503,8 @@ export function observationSummary(
 		messages,
 		earlierProposals,
 		promptEventId: prompt?.id,
+		instructions: observation.instructions,
+		redacted,
 	};
 }
 

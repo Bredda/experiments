@@ -44,7 +44,7 @@ One commit per phase, in this order (conventional commits, they feed release-ple
 - [x] `AGENT_MODELS`, `persona?`, `model?` on `agentConfigSchema`, rejected on non-`llm` agents; `LLMAgent` uses them. Files: `packages/types/src/scenario.ts`, `packages/engine/src/scenario/factory.ts`, `packages/ai/src/*`, `docs/agent/engine.md`. **Verify:** engine test on schema acceptance and rejection; `pnpm test`.
 
 **4. `feat(engine): add last_n memory strategy`**
-- [ ] `last_n` in `MEMORY_KINDS`, `LastNMemory`, registration, UI label. Files: `packages/types/src/memory.ts`, `packages/engine/src/memory/*`, `apps/ui/components/create-run/schemas.ts`. **Verify:** `memory.test.ts` (truncation, own proposals only, fewer than N events, determinism).
+- [x] `last_n` in `MEMORY_KINDS`, `LastNMemory`, registration, UI label. Files: `packages/types/src/memory.ts`, `packages/engine/src/memory/*`, `apps/ui/components/create-run/schemas.ts`. **Verify:** `memory.test.ts` (truncation, own proposals only, fewer than N events, determinism).
 
 **5. `feat: record model and token usage on agent.prompt_built`**
 - [ ] Optional `meta` on `actionProposalSchema`, optional `model` and `usage` on `agentPromptBuiltSchema`, copied by `Simulation`; the runner fills them. Files: `packages/types/src/{actions,events}.ts`, `packages/engine/src/simulation.ts`, `packages/ai/src/*`. **Verify:** engine test (event carries the metadata, persisted and restored; absent metadata unchanged); real run confirms the usage is populated (needs an API key).

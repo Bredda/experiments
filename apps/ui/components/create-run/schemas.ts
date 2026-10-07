@@ -49,6 +49,7 @@ export const newAgentDefaults = (name: string): Agent => ({
 
 export const MEMORY_LABELS: Record<MemoryType, string> = {
 	sliding_window: "Sliding Window",
+	last_n: "Last N",
 };
 
 export const SCHEDULER_LABELS: Record<SchedulerType, string> = {

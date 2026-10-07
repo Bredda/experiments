@@ -3,7 +3,9 @@
 import { MEMORY_KINDS, type MemoryType } from "@experiments/types";
 import {
 	AGENT_BEHAVIORS,
+	AGENT_MODELS,
 	type AgentBehavior,
+	type AgentModel,
 } from "@experiments/types/scenario";
 import { PlusIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -34,11 +36,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { generateRandomName } from "@/lib/utils";
 import type { Agent } from "./schemas";
 import {
 	BEHAVIOR_LABELS,
 	MEMORY_LABELS,
+	MODEL_LABELS,
 	makeAgentSchema,
 	newAgentDefaults,
 } from "./schemas";
@@ -161,6 +165,60 @@ function AgentForm({
 						);
 					}}
 				</form.Field>
+
+				{/* Instructions and model are read by the llm behavior only. */}
+				<form.Subscribe selector={(state) => state.values.behavior}>
+					{(behavior) =>
+						behavior === "llm" && (
+							<>
+								<form.Field name="model">
+									{(field) => (
+										<Field>
+											<FieldLabel htmlFor="agent-model">Model</FieldLabel>
+											<Select
+												items={MODEL_LABELS}
+												name={field.name}
+												value={field.state.value}
+												onValueChange={(value) =>
+													field.handleChange(value as AgentModel)
+												}
+											>
+												<SelectTrigger id="agent-model" className="w-full">
+													<SelectValue placeholder="Select" />
+												</SelectTrigger>
+												<SelectContent>
+													{AGENT_MODELS.map((model) => (
+														<SelectItem key={model} value={model}>
+															{MODEL_LABELS[model]}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</Field>
+									)}
+								</form.Field>
+
+								<form.Field name="persona">
+									{(field) => (
+										<Field>
+											<FieldLabel htmlFor="agent-persona">
+												Persona (optional)
+											</FieldLabel>
+											<Textarea
+												id="agent-persona"
+												name={field.name}
+												value={field.state.value}
+												onBlur={field.handleBlur}
+												onChange={(e) => field.handleChange(e.target.value)}
+												placeholder="You are a terse engineer who prefers to ask questions."
+											/>
+										</Field>
+									)}
+								</form.Field>
+							</>
+						)
+					}
+				</form.Subscribe>
 			</FieldGroup>
 
 			<DialogFooter className="mt-4">

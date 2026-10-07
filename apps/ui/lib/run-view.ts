@@ -1,5 +1,9 @@
 import type { Observation } from "@experiments/types";
-import { type AnyEvent, anyEventSchema } from "@experiments/types/events";
+import {
+	type AgentPromptBuilt,
+	type AnyEvent,
+	anyEventSchema,
+} from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
 
 export type EventType = AnyEvent["type"];
@@ -246,6 +250,9 @@ export type AgentSummary = {
 	roomId: string | undefined;
 	behavior: string;
 	memory: string | undefined;
+	/** Instructions of an llm agent; undefined when it runs on the default prompt. */
+	persona: string | undefined;
+	model: string | undefined;
 	messageCount: number;
 	timesSelected: number;
 	speakProposals: number;
@@ -301,6 +308,8 @@ export function agentSummary(
 		roomId: agentRooms(events).get(agentId),
 		behavior: config.behavior,
 		memory: config.memory,
+		persona: config.persona,
+		model: config.model,
 		messageCount,
 		timesSelected: selectedSteps.size,
 		speakProposals: proposals.filter((p) => p.type === "speak").length,
@@ -371,4 +380,18 @@ export function observationSummary(
 		earlierProposals,
 		promptEventId: prompt?.id,
 	};
+}
+
+/** "claude-sonnet-5-5 · 40 in / 7 out tokens", with whatever the prompt event recorded. */
+export function modelCallLabel(prompt: AgentPromptBuilt): string | undefined {
+	const parts: string[] = [];
+
+	if (prompt.model !== undefined) parts.push(prompt.model);
+	if (prompt.usage !== undefined) {
+		parts.push(
+			`${prompt.usage.inputTokens} in / ${prompt.usage.outputTokens} out tokens`,
+		);
+	}
+
+	return parts.length === 0 ? undefined : parts.join(" · ");
 }

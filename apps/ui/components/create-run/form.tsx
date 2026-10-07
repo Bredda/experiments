@@ -47,6 +47,11 @@ function toScenarioConfig(value: RunFormValues): ScenarioConfig {
 		id: agent.name,
 		behavior: agent.behavior,
 		memory: agent.memory,
+		// Persona and model only exist for llm agents.
+		...(agent.behavior === "llm" && {
+			persona: agent.persona || undefined,
+			model: agent.model,
+		}),
 	}));
 
 	return scenarioConfigSchema.parse({

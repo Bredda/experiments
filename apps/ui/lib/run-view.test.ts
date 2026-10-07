@@ -19,6 +19,7 @@ import {
 	eventsUntil,
 	filterEvents,
 	lastStep,
+	modelCallLabel,
 	NO_FILTER,
 	observationSummary,
 	roomSummaries,
@@ -87,6 +88,22 @@ const prompt = (agentId: string, step: number) =>
 		type: "agent.prompt_built",
 		agentId,
 		prompt: [{ role: "system", content: "x" }],
+	});
+
+const promptWith = (
+	agentId: string,
+	step: number,
+	call: {
+		model?: string;
+		usage?: { inputTokens: number; outputTokens: number };
+	},
+) =>
+	agentPromptBuiltSchema.parse({
+		...base(step),
+		type: "agent.prompt_built",
+		agentId,
+		prompt: [{ role: "system", content: "x" }],
+		...call,
 	});
 
 function run(rooms: { id: string; members: string[] }[]): RunRecord {
@@ -331,6 +348,34 @@ describe("agentSummary", () => {
 	it("knows nothing about an agent outside the scenario", () => {
 		expect(agentSummary(config, events, "ghost")).toBeUndefined();
 	});
+
+	it("exposes the persona and model an llm agent was configured with", () => {
+		const llm = {
+			...config,
+			scenario: {
+				...config.scenario,
+				agents: [
+					{
+						id: "alice",
+						behavior: "llm",
+						memory: "last_n",
+						persona: "You are a terse pirate.",
+						model: "claude-sonnet-5-5",
+					},
+					{ id: "bob", behavior: "mentioned" },
+				],
+			},
+		} as unknown as RunRecord;
+
+		expect(agentSummary(llm, events, "alice")).toMatchObject({
+			persona: "You are a terse pirate.",
+			model: "claude-sonnet-5-5",
+		});
+		expect(agentSummary(llm, events, "bob")).toMatchObject({
+			persona: undefined,
+			model: undefined,
+		});
+	});
 });
 
 describe("eventsUntil", () => {
@@ -460,5 +505,33 @@ describe("EVENT_TYPES", () => {
 			"agent.prompt_built",
 			"message.published",
 		]);
+	});
+});
+
+describe("modelCallLabel", () => {
+	it("shows the model and the tokens the prompt event recorded", () => {
+		expect(
+			modelCallLabel(
+				promptWith("alice", 1, {
+					model: "claude-sonnet-5-5",
+					usage: { inputTokens: 40, outputTokens: 7 },
+				}),
+			),
+		).toBe("claude-sonnet-5-5 · 40 in / 7 out tokens");
+	});
+
+	it("shows what is there when only part of it was recorded", () => {
+		expect(
+			modelCallLabel(promptWith("alice", 1, { model: "claude-opus-5-5" })),
+		).toBe("claude-opus-5-5");
+		expect(
+			modelCallLabel(
+				promptWith("alice", 1, { usage: { inputTokens: 1, outputTokens: 2 } }),
+			),
+		).toBe("1 in / 2 out tokens");
+	});
+
+	it("has nothing to show for a prompt recorded without a model call", () => {
+		expect(modelCallLabel(prompt("alice", 1))).toBeUndefined();
 	});
 });

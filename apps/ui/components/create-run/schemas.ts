@@ -6,7 +6,10 @@ import {
 import {
 	AGENT_BEHAVIORS,
 	type AgentBehavior,
+	type AgentModel,
 	agentBehaviorSchema,
+	agentModelSchema,
+	DEFAULT_AGENT_MODEL,
 	type SchedulerType,
 	schedulerTypeSchema,
 	seedSchema,
@@ -19,6 +22,9 @@ export const agentSchema = z.object({
 	name: z.string().trim().min(1, "Required"),
 	behavior: agentBehaviorSchema,
 	memory: memoryTypeSchema,
+	// Only sent to the API for llm agents; blank means the default prompt.
+	persona: z.string().trim(),
+	model: agentModelSchema,
 });
 export type Agent = z.infer<typeof agentSchema>;
 
@@ -45,11 +51,19 @@ export const newAgentDefaults = (name: string): Agent => ({
 	name,
 	behavior: AGENT_BEHAVIORS[0],
 	memory: MEMORY_KINDS[0],
+	persona: "",
+	model: DEFAULT_AGENT_MODEL,
 });
 
 export const MEMORY_LABELS: Record<MemoryType, string> = {
 	sliding_window: "Sliding Window",
 	last_n: "Last N",
+};
+
+export const MODEL_LABELS: Record<AgentModel, string> = {
+	"claude-haiku-4-5-20251001": "Claude Haiku 4.5",
+	"claude-sonnet-5-5": "Claude Sonnet 5.5",
+	"claude-opus-5-5": "Claude Opus 5.5",
 };
 
 export const SCHEDULER_LABELS: Record<SchedulerType, string> = {

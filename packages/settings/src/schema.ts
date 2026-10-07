@@ -16,9 +16,7 @@ export const configSchema = z.object({
 		)
 		.transform((value) => value.split(",")),
 	DB_PATH: z.string().default("./simulation.db"),
-	ANTHROPIC_API_KEY: z
-		.string()
-		.regex(/^sk-ant-api/, "Invalid Anthropic API key"),
+	ANTHROPIC_API_KEY: z.string().regex(/^sk-ant-/, "Invalid Anthropic API key"),
 });
 
 export type Config = z.infer<typeof configSchema>;

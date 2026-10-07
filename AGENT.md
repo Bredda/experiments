@@ -45,7 +45,7 @@ Docker: `docker compose up --build` runs the api and the ui (see the README for 
 
 Husky runs `biome check --staged` on commit and `check-types` + `test` on push. Fix failures; do not use `--no-verify`.
 
-Local setup: copy `.env.example` to `.env`. `@experiments/settings` validates env on import, and `ANTHROPIC_API_KEY` must match `sk-ant-api…`, so any process importing it fails without a well-formed key, even when no LLM agent is used.
+Local setup: copy `.env.example` to `.env`. `@experiments/settings` validates env on import, and `ANTHROPIC_API_KEY` must start with `sk-ant-`, so any process importing it fails without a well-formed key, even when no LLM agent is used.
 
 ## Architecture rules
 

@@ -11,7 +11,7 @@ An experimental environment for running, inspecting and comparing multi-agent si
 
 ```sh
 pnpm install
-cp .env.example .env   # set a valid ANTHROPIC_API_KEY (sk-ant-api...)
+cp .env.example .env   # set a valid ANTHROPIC_API_KEY (sk-ant-...)
 pnpm dev               # API on :8080, UI on :3000
 ```
 
@@ -28,7 +28,7 @@ The ui is on http://localhost:3000 and the api on http://localhost:8080. Runs ar
 
 | Variable | Where | Meaning |
 | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | api, from `.env` | required, `sk-ant-api...` |
+| `ANTHROPIC_API_KEY` | api, from `.env` | required, `sk-ant-...` |
 | `API_PUBLISHED_PORT`, `UI_PUBLISHED_PORT` | compose | host ports, default 8080 and 3000 |
 | `NEXT_PUBLIC_API_URL` | ui, **build time** | where the browser reaches the api (compose derives it from `API_PUBLISHED_PORT`) |
 | `API_URL` | ui, runtime | where the ui container reaches the api for server-side rendering (`http://api:8080` in compose) |

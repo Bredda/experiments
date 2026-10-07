@@ -457,3 +457,76 @@ describe("getObservations", () => {
 		).toThrow(RunNotFoundError);
 	});
 });
+
+describe("agent.prompt_built metadata", () => {
+	const prompt = [{ role: "system", content: "You are a test agent." }];
+
+	/** Reports its prompt, and the model call behind it when asked to. */
+	class PromptingAgent extends Agent {
+		constructor(
+			id: string,
+			roomId: Room["id"],
+			readonly withMeta: boolean,
+		) {
+			super(id as never, id, roomId);
+		}
+
+		propose(): ActionProposal {
+			return actionProposal({
+				action: speak({
+					agentId: this.id,
+					roomId: this.roomId,
+					content: "hi",
+				}),
+				prompt,
+				meta: this.withMeta
+					? {
+							model: "claude-sonnet-5-5",
+							usage: { inputTokens: 12, outputTokens: 3 },
+						}
+					: undefined,
+			});
+		}
+	}
+
+	it("records the model call next to the prompt, and only when reported", async () => {
+		const runId = "22222222-2222-4222-8222-222222222222" as RunId;
+		store.createRun({
+			runId,
+			name: "metadata",
+			seed: "ABC123",
+			scenario: scenario(),
+		});
+
+		const room = new Room({ id: "main" as never, name: "main" });
+		const simulation = new Simulation({
+			runId,
+			room,
+			agents: [
+				new PromptingAgent("alice", room.id, true),
+				new PromptingAgent("bob", room.id, false),
+			],
+			scheduler: new HighestUrgencyScheduler(),
+			config: new RunConfig({ runId, seed: "ABC123" }),
+			store,
+		});
+		simulation.setup();
+		await simulation.step();
+
+		const prompts = store
+			.listEvents(runId)
+			.map((record) => record.payload)
+			.filter((event) => event.type === "agent.prompt_built");
+
+		expect(prompts).toHaveLength(2);
+		expect(prompts[0]).toMatchObject({
+			agentId: "alice",
+			prompt,
+			model: "claude-sonnet-5-5",
+			usage: { inputTokens: 12, outputTokens: 3 },
+		});
+		expect(prompts[1]).toMatchObject({ agentId: "bob", prompt });
+		expect(prompts[1]).not.toHaveProperty("model");
+		expect(prompts[1]).not.toHaveProperty("usage");
+	});
+});

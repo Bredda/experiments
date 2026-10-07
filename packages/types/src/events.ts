@@ -1,5 +1,5 @@
 import z from "zod";
-import { actionSchema, promptSchema } from "./actions";
+import { actionSchema, modelCallSchema, promptSchema } from "./actions";
 import { agentIdSchema, eventIdSchema, roomIdSchema } from "./ids";
 import { stepSchema, timeSchema } from "./primitives";
 
@@ -41,6 +41,10 @@ export type ActionSelected = z.infer<typeof actionSelectedSchema>;
 export const agentPromptBuiltSchema = eventSchema.extend({
 	agentId: agentIdSchema,
 	prompt: promptSchema,
+	// The model call behind the prompt, when the agent reports it. Absent on
+	// events recorded before it existed and for agents that call no model.
+	model: modelCallSchema.shape.model.optional(),
+	usage: modelCallSchema.shape.usage,
 	type: z.literal("agent.prompt_built"),
 });
 export type AgentPromptBuilt = z.infer<typeof agentPromptBuiltSchema>;

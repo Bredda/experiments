@@ -43,7 +43,7 @@ All events share `id`, `timestamp` (simulation time, ISO), `step`, and a literal
 | type | Emitted when |
 | --- | --- |
 | `agent.joined` | `setup()` |
-| `agent.prompt_built` | an agent returns a prompt (LLM agents) |
+| `agent.prompt_built` | an agent returns a prompt (LLM agents); also carries `model` and `usage` (`inputTokens`, `outputTokens`) when the agent reports the model call, absent otherwise and on older runs |
 | `action.proposed` | every agent, every step |
 | `action.selected` | the scheduler picks a candidate |
 | `message.published` | the selected action is `speak` |

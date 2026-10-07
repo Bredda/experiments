@@ -182,6 +182,8 @@ export class Simulation {
 						step: this.clock.step,
 						agentId: agent.id,
 						prompt: proposal.prompt,
+						model: proposal.meta?.model,
+						usage: proposal.meta?.usage,
 						type: "agent.prompt_built",
 					}),
 				);

@@ -47,10 +47,24 @@ export const promptSchema = z.array(
 );
 export type Prompt = z.infer<typeof promptSchema>;
 
+export const tokenUsageSchema = z.object({
+	inputTokens: z.number().int().gte(0),
+	outputTokens: z.number().int().gte(0),
+});
+export type TokenUsage = z.infer<typeof tokenUsageSchema>;
+
+/** What a model-backed agent knows about the call behind its proposal. */
+export const modelCallSchema = z.object({
+	model: z.string(),
+	usage: tokenUsageSchema.optional(),
+});
+export type ModelCall = z.infer<typeof modelCallSchema>;
+
 export const actionProposalSchema = z.object({
 	action: actionSchema,
 	confidence: z.number().gte(0).default(1.0),
 	prompt: promptSchema.optional(),
+	meta: modelCallSchema.optional(),
 });
 export type ActionProposal = z.infer<typeof actionProposalSchema>;
 

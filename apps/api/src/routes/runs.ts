@@ -12,6 +12,7 @@ import {
 	forkRunRequestSchema,
 	forkTreeSchema,
 	runRecordSchema,
+	stepRequestSchema,
 	stepResultSchema,
 } from "@experiments/types/run";
 import { scenarioConfigSchema } from "@experiments/types/scenario";
@@ -94,7 +95,7 @@ const runsRoutes: FastifyPluginAsync = async (app) => {
 		{
 			schema: {
 				description:
-					"Fork a run: create a new run that starts with a copy of this run's events up to a step (0 keeps only the arrivals), with the same scenario and seed, then diverges. The fork records its parent, the step and an optional purpose. 404 if the run does not exist or the step was not played.",
+					"Fork a run: create a new run that starts with a copy of this run's events up to a step (0 keeps only the arrivals), with the same scenario and seed, then diverges. The fork records its parent, the step and an optional purpose. Optional `interventions` are recorded in the fork right after the copied history and take effect at the step after `step`; the parent is never modified. 400 if an intervention cannot be applied, 404 if the run does not exist or the step was not played.",
 				tags: ["runs"],
 				params: idParams,
 				body: forkRunRequestSchema.toJSONSchema({
@@ -103,6 +104,7 @@ const runsRoutes: FastifyPluginAsync = async (app) => {
 				}),
 				response: {
 					201: runRecordSchema.toJSONSchema(),
+					400: errorResponse,
 					404: errorResponse,
 				},
 			},
@@ -183,16 +185,19 @@ const runsRoutes: FastifyPluginAsync = async (app) => {
 		},
 	);
 
-	app.post<{ Params: { id: string } }>(
+	app.post<{ Params: { id: string }; Body: unknown }>(
 		"/:id/steps/next",
 		{
 			schema: {
 				description:
-					"Advance a run by one step. Returns the updated run and only the events this step added. 409 if the run is completed or already executing a step.",
+					"Advance a run by one step. Returns the updated run and only the events this step added. The body is optional; when present it is `{ interventions }` (a system instruction for an llm agent, or the redaction of a message or proposal from one agent's view): they are recorded with the step, in one transaction, and take effect at this step. 400 if an intervention cannot be applied, 409 if the run is completed or already executing a step.",
 				tags: ["runs"],
 				params: idParams,
+				// No `body` schema: Fastify rejects a request without a body when one
+				// is declared, and this one is optional. Zod validates it below.
 				response: {
 					200: stepResultSchema.toJSONSchema(),
+					400: errorResponse,
 					404: errorResponse,
 					409: errorResponse,
 				},
@@ -202,6 +207,7 @@ const runsRoutes: FastifyPluginAsync = async (app) => {
 			const result = await stepRun(
 				app.store,
 				runIdSchema.parse(request.params.id),
+				stepRequestSchema.parse(request.body ?? {}),
 			);
 			return reply.code(200).send(result);
 		},

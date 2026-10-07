@@ -8,7 +8,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { type Agent, BEHAVIOR_LABELS, MEMORY_LABELS } from "./schemas";
+import {
+	type Agent,
+	BEHAVIOR_LABELS,
+	MEMORY_LABELS,
+	MODEL_LABELS,
+} from "./schemas";
 
 export function AgentCard({
 	agent,
@@ -23,7 +28,13 @@ export function AgentCard({
 				<CardTitle>{agent.name}</CardTitle>
 				<CardDescription>
 					{BEHAVIOR_LABELS[agent.behavior]} · {MEMORY_LABELS[agent.memory]}
+					{agent.behavior === "llm" && ` · ${MODEL_LABELS[agent.model]}`}
 				</CardDescription>
+				{agent.behavior === "llm" && agent.persona !== "" && (
+					<p className="line-clamp-2 text-muted-foreground text-xs">
+						{agent.persona}
+					</p>
+				)}
 				<CardAction>
 					<Button
 						type="button"

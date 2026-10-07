@@ -4,6 +4,7 @@ import type {
 	AgentPromptBuilt,
 	AnyEvent,
 } from "@experiments/types/events";
+import { modelCallLabel } from "@/lib/run-view";
 import { cn } from "@/lib/utils";
 import {
 	Card,
@@ -55,6 +56,7 @@ function RenderActionProposed({
 	className?: string;
 }) {
 	const prompt = findPromptFor(events, event);
+	const modelCall = prompt && modelCallLabel(prompt);
 
 	return (
 		<Card className={cn(className)}>
@@ -73,6 +75,9 @@ function RenderActionProposed({
 				{prompt && (
 					<div className="space-y-2">
 						<p className="text-sm font-medium">Prompt used</p>
+						{modelCall && (
+							<p className="text-xs text-muted-foreground">{modelCall}</p>
+						)}
 						{prompt.prompt.map((message, index) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: prompt messages have no stable id and the list is static
 							<div key={`message-${index}`} className="space-y-1">

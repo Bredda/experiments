@@ -166,10 +166,18 @@ export function AgentPanel({
 						{summary.memory && (
 							<Badge variant="outline">memory: {summary.memory}</Badge>
 						)}
+						{summary.model && (
+							<Badge variant="outline">model: {summary.model}</Badge>
+						)}
 						{summary.roomId && (
 							<Badge variant="outline">room: {summary.roomId}</Badge>
 						)}
 					</div>
+					{summary.persona && (
+						<p className="whitespace-pre-wrap text-muted-foreground text-xs">
+							{summary.persona}
+						</p>
+					)}
 				</div>
 
 				<div className="grid grid-cols-3 gap-2">

@@ -48,7 +48,8 @@ Conventions:
 - Fetch data in server components through `lib/api.ts`. The api address is `NEXT_PUBLIC_API_URL` (default `http://localhost:8080`), inlined at build time and used by the browser; server-side rendering uses `API_URL` when set (read at runtime, for instance `http://api:8080` inside Docker). See `apiUrl()` in `lib/fetch.ts`.
 - Runs are launched from the create-run form, which builds a `ScenarioConfig` and `POST`s it to `/runs`, or forked from the run page (see "Forks" below), and advance from the run page.
 - `apiFetch` only sends a JSON content type when there is a body (Fastify rejects an empty JSON body) and throws `ApiError` with the API's `error` message and the HTTP status.
-- Types and Zod schemas come from `@experiments/types`. Reuse its enums (`AGENT_BEHAVIORS`, `MEMORY_KINDS`, `schedulerTypeSchema`) instead of repeating literals. The create-run form keeps label maps keyed by those types, so a new member fails type-checking until labelled.
+- The agent dialog of the form asks for a name, a behavior and a memory kind; for an `llm` agent it also shows a model (`AGENT_MODELS`) and an optional persona. `toScenarioConfig` only sends them for `llm` agents (the API rejects them elsewhere) and omits a blank persona, so the default prompt applies.
+- Types and Zod schemas come from `@experiments/types`. Reuse its enums (`AGENT_BEHAVIORS`, `MEMORY_KINDS`, `AGENT_MODELS`, `schedulerTypeSchema`) instead of repeating literals. The create-run form keeps label maps keyed by those types, so a new member fails type-checking until labelled.
 - Add shadcn primitives with the shadcn CLI (config in `components.json`) rather than writing them by hand.
 - Logic that turns events into something to display (room attribution, summaries, the chat timeline, agent summaries) lives in `lib/run-view.ts` as pure functions with Vitest tests next to it (`pnpm --filter ui test`). Components only render; do not put that logic in them. There are no DOM or component tests.
 - shadcn components added so far beyond the basics: `message`, `marker`, `bubble`, `message-scroller` (these depend on `@shadcn/react`).
@@ -64,12 +65,13 @@ centre       room-strip.tsx      one card per room, filters the chat ("All rooms
              chat.tsx            chat-style timeline of the selected room
 inspector    (inspector.tsx)     contextual, opens on selection, close button
              event-panel.tsx     detail of an event (generic JSON fallback for events without a dedicated view)
-             agent-panel.tsx     read-only detail of an agent, with what it observed at the cursor step
+             agent-panel.tsx     read-only detail of an agent (behavior, memory, model, persona), with what it observed at the cursor step
 ```
 
 - **State.** `useRunExecution` (`use-run-execution.ts`) holds `run` and `events` on the client and exposes `nextStep`, `play` and `pause`. Autoplay is a loop over the same `steps/next` call with a short fixed delay; pause lets the step in flight finish, and leaving the page stops the loop. `RunViewer` adds `selection` (`{ type: "event" | "agent"; id }`, see `selection.ts`), the room filter and the left panel toggle.
 - **Time cursor.** `RunViewer` holds `cursor` (`null` = live). The step shown is the cursor or the latest step; `eventsUntil` cuts the log at that step and every panel (viewer, chat, room strip, inspector) reads the cut events, never the full log. Moving the cursor does not touch execution (Next/Play stay available); reaching the latest step goes back to live. A selected event later than the cursor is dropped from the view.
 - **Observation view.** The agent panel fetches `GET /runs/:id/steps/:step/observations` for the cursor step (`useStepObservations`, cached per run and step since a played step never changes) and formats it with `observationSummary`. The ui never recomputes what an agent could see; that is the engine's `Room.view`.
+- **Model call.** The "Prompt used" block of a proposal shows the model and the token usage recorded on its `agent.prompt_built` event (`modelCallLabel`), when the agent reported them.
 - **Filters.** `filterEvents` (agents and event types, AND; empty = any) applies to the event viewer only, after the cursor. `agent.prompt_built` stays hidden in the viewer unless its type is selected.
 - **One selection, many views.** Clicking an event in the viewer, a message or marker in the chat, or a proposal in the agent panel sets `selection`; the inspector, the viewer highlight and the chat highlight all read it. Agents are selected from a chat avatar or name, or from the "Agent" link in the inspector.
 - **Room of an event.** Events without a `roomId` (silent proposals, prompts) take the room their agent joined, derived from `agent.joined` events (`eventRoomId`).

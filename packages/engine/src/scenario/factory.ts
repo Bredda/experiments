@@ -19,12 +19,12 @@ function buildAgent(params: {
 	memory?: MemoryType;
 }): Agent {
 	const factory = agentBehaviorRegistry.get(params.behavior);
-	return factory(
-		params.agentId as AgentId,
-		params.agentId,
-		params.roomId,
-		params.memory,
-	);
+	return factory({
+		agentId: params.agentId as AgentId,
+		name: params.agentId,
+		roomId: params.roomId,
+		memoryType: params.memory,
+	});
 }
 
 /** Builds a fresh, not yet started simulation from a scenario. */

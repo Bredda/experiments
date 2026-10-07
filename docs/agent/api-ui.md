@@ -59,7 +59,7 @@ Conventions:
 `app/runs/[runId]/page.tsx` loads the run and its events on the server and renders `RunViewer`, keyed by run id so switching run tabs does not reuse state. The page is constrained to the viewport height and each panel scrolls on its own; keep that layout when editing it.
 
 ```text
-control bar  (control-bar.tsx)   name, status, step n / N, panel toggle, time cursor (prev, slider, next, Live), Next step, Play / Pause, Fork (always last)
+control bar  (control-bar.tsx)   name, run state (run-state.tsx: status badge, plus "Back to live" while the cursor is on a past step; live has no marker of its own), step n / N, panel toggle, time cursor (prev, slider, next), Next step, Play / Pause, Fork (always last)
 event viewer (events.tsx)        raw log, collapsible; the source of truth; filter menu by agent and event type
 centre       room-strip.tsx      one card per room, filters the chat ("All rooms" card only with several rooms)
              chat.tsx            chat-style timeline of the selected room

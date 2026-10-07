@@ -8,10 +8,10 @@ import {
 	PlayIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { RunStatusBadge } from "@/components/runs/status-badge";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ForkSheet } from "./fork-sheet";
+import { RunState } from "./run-state";
 
 export function ControlBar({
 	run,
@@ -64,7 +64,7 @@ export function ControlBar({
 				#{run.seed}
 			</span>
 			<div className="ml-auto flex items-center gap-3">
-				<RunStatusBadge status={run.status} />
+				<RunState status={run.status} live={live} step={step} onLive={onLive} />
 				{/* Sized for the widest label ("Step 10 / 10") so the controls
 				    next to it do not move when the step gains a digit. */}
 				<span
@@ -106,14 +106,6 @@ export function ControlBar({
 						aria-label="Next played step"
 					>
 						<HugeiconsIcon icon={ArrowRight01Icon} />
-					</Button>
-					<Button
-						variant={live ? "secondary" : "outline"}
-						size="sm"
-						onClick={onLive}
-						disabled={live}
-					>
-						Live
 					</Button>
 				</div>
 				<div className="flex items-center gap-2">

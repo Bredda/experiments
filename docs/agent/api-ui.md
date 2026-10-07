@@ -30,11 +30,11 @@ Next.js 16 App Router. This version differs from older Next.js: before writing N
 Structure:
 
 ```text
-app/                  routes: /, /runs, /runs/[runId], /runs/[runId]/fork, /create-run
+app/                  routes: /, /runs, /runs/[runId], /create-run
 components/ui/        shadcn primitives (style base-mira, icons: hugeicons)
 components/run/       run page, see "Run page" below
 components/runs/      run list and the shared status badge
-components/fork/      fork form (name, optional purpose)
+components/fork/      fork form (name, optional purpose), rendered in the fork sheet
 components/create-run/ scenario form (TanStack Form + Zod)
 lib/api.ts            typed API client; lib/fetch.ts is the fetch wrapper
 lib/run-view.ts       pure view logic for the run page (tested)
@@ -59,7 +59,7 @@ Conventions:
 `app/runs/[runId]/page.tsx` loads the run and its events on the server and renders `RunViewer`, keyed by run id so switching run tabs does not reuse state. The page is constrained to the viewport height and each panel scrolls on its own; keep that layout when editing it.
 
 ```text
-control bar  (control-bar.tsx)   name, status, step n / N, panel toggle, time cursor (prev, slider, next, Live), Next step, Play / Pause
+control bar  (control-bar.tsx)   name, status, step n / N, panel toggle, time cursor (prev, slider, next, Live), Next step, Play / Pause, Fork (always last)
 event viewer (events.tsx)        raw log, collapsible; the source of truth; filter menu by agent and event type
 centre       room-strip.tsx      one card per room, filters the chat ("All rooms" card only with several rooms)
              chat.tsx            chat-style timeline of the selected room
@@ -79,5 +79,5 @@ inspector    (inspector.tsx)     contextual, opens on selection, close button
 
 ### Forks
 
-- **Fork page.** The control bar's "Fork at step N" button (N is the step the cursor shows) opens `/runs/[runId]/fork?step=N`. The server component loads the tree, rejects a step outside 0..played steps with a 404, and renders `ForkForm`: a name prefilled by `suggestForkName` (`<origin name> - fork #n`) and an optional purpose. The form only asks for these two: the fork keeps the scenario and seed of its parent. On success it navigates to the new run.
-- **Fork tree sheet.** The "Forks" button opens `ForkTreeSheet`, a full-screen sheet that fetches `GET /runs/:id/tree` each time it opens. `layoutForkTree` (pure, in `lib/fork-tree.ts`) orders the runs depth first and `ForkGraph` draws them: one lane per run over the steps (solid up to the played step, dashed up to the planned one), a connector leaving the parent's lane at the fork step, name, purpose and status on the left, the current run highlighted, a click on a row opens that run. Do not recompute lineage in the ui: it comes from the API.
+- **Fork sheet.** The control bar's single "Fork" button, always its last control, opens `ForkSheet` (`components/run/fork-sheet.tsx`), a full-screen sheet that fetches `GET /runs/:id/tree` each time it opens. It has two parts: the fork tree and, beside it (below on narrow screens), a "Fork at step N" form where N is the step the cursor shows. `layoutForkTree` (pure, in `lib/fork-tree.ts`) orders the runs depth first and `ForkGraph` draws them: one lane per run over the steps (solid up to the played step, dashed up to the planned one), a connector leaving the parent's lane at the fork step, name, purpose and status on the left, the current run highlighted, a click on a row opens that run. Do not recompute lineage in the ui: it comes from the API.
+- **Fork form.** `ForkForm` asks for a name, prefilled by `suggestForkName` (`<origin name> - fork #n`, computed from the tree the sheet loaded), and an optional purpose. The fork keeps the scenario and seed of its parent. On success it navigates to the new run, which closes the sheet. There is no fork route: forking only happens from the sheet.

@@ -1,10 +1,11 @@
 "use client";
 
 import type { ForkTree } from "@experiments/types/run";
-import { GitBranchIcon } from "@hugeicons/core-free-icons";
+import { GitForkIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ForkForm } from "@/components/fork/fork-form";
 import { RunStatusBadge } from "@/components/runs/status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +17,7 @@ import {
 	SheetTrigger,
 } from "@/components/ui/sheet";
 import { getForkTree } from "@/lib/api";
-import { type ForkRow, layoutForkTree } from "@/lib/fork-tree";
+import { type ForkRow, layoutForkTree, suggestForkName } from "@/lib/fork-tree";
 
 const ROW_HEIGHT = 64;
 const AXIS_HEIGHT = 28;
@@ -62,36 +63,61 @@ function useForkTree(runId: string, open: boolean): State {
 	return state;
 }
 
-export function ForkTreeSheet({ runId }: { runId: string }) {
+/**
+ * The one place to fork: the fork tree of the run, and a form to fork it at
+ * `step`, the step the time cursor shows.
+ */
+export function ForkSheet({ runId, step }: { runId: string; step: number }) {
 	const [open, setOpen] = useState(false);
 	const state = useForkTree(runId, open);
+	const origin =
+		state.status === "ready"
+			? state.tree.nodes.find((node) => node.runId === runId)
+			: undefined;
 
 	return (
 		<Sheet open={open} onOpenChange={setOpen}>
-			<SheetTrigger render={<Button variant="ghost" size="sm" />}>
-				<HugeiconsIcon icon={GitBranchIcon} data-icon="inline-start" />
-				Forks
+			<SheetTrigger render={<Button variant="outline" size="sm" />}>
+				<HugeiconsIcon icon={GitForkIcon} data-icon="inline-start" />
+				Fork
 			</SheetTrigger>
 			<SheetContent
 				side="right"
 				className="data-[side=right]:w-screen data-[side=right]:sm:max-w-none"
 			>
 				<SheetHeader className="border-b">
-					<SheetTitle>Fork tree</SheetTitle>
+					<SheetTitle>Fork</SheetTitle>
 					<SheetDescription>
 						Each run is a lane over the steps. A fork leaves its parent at the
 						step it was made at.
 					</SheetDescription>
 				</SheetHeader>
-				<div className="min-h-0 flex-1 overflow-auto">
-					{state.status === "loading" && (
-						<p className="p-6 text-muted-foreground">Loading…</p>
-					)}
-					{state.status === "error" && (
-						<p className="p-6 text-destructive">{state.message}</p>
-					)}
-					{state.status === "ready" && (
-						<ForkGraph tree={state.tree} currentRunId={runId} />
+				<div className="flex min-h-0 flex-1 flex-col md:flex-row">
+					<div className="min-h-0 min-w-0 flex-1 overflow-auto">
+						{state.status === "loading" && (
+							<p className="p-6 text-muted-foreground">Loading…</p>
+						)}
+						{state.status === "error" && (
+							<p className="p-6 text-destructive">{state.message}</p>
+						)}
+						{state.status === "ready" && (
+							<ForkGraph tree={state.tree} currentRunId={runId} />
+						)}
+					</div>
+					{state.status === "ready" && origin !== undefined && (
+						<aside className="max-h-[60%] shrink-0 overflow-auto border-t p-6 md:max-h-none md:w-96 md:border-t-0 md:border-l">
+							<h3 className="font-medium text-sm">Fork at step {step}</h3>
+							<p className="mt-1 mb-4 text-muted-foreground">
+								Start a new run from &ldquo;{origin.name}&rdquo; as it was at
+								step {step}. It keeps the same scenario and seed and carries on
+								from there.
+							</p>
+							<ForkForm
+								runId={runId}
+								step={step}
+								defaultName={suggestForkName(origin, state.tree.nodes)}
+							/>
+						</aside>
 					)}
 				</div>
 			</SheetContent>

@@ -1,6 +1,7 @@
 import type { RunStore } from "@experiments/db";
 import type { Observation } from "@experiments/types";
 import { newRunId, type RunId } from "@experiments/types/ids";
+import type { Intervention } from "@experiments/types/interventions";
 import type {
 	EventRecord,
 	ForkTree,
@@ -8,12 +9,14 @@ import type {
 	RunStatus,
 } from "@experiments/types/run";
 import type { ScenarioConfig } from "@experiments/types/scenario";
+import { SimulationClock } from "../clock";
 import {
 	RunBusyError,
 	RunCompletedError,
 	RunNotFoundError,
 	StepNotFoundError,
 } from "../errors";
+import { buildInterventionEvents } from "../interventions";
 import { buildRun, loadSimulation } from "./factory";
 
 /**
@@ -49,11 +52,20 @@ export function createRun(
  * and seed, so it is stepped like any other run. The parent is not touched.
  * With deterministic agents the fork carries on exactly like its parent; with
  * LLM agents it is a new sample from `step` on.
+ *
+ * `interventions` are recorded in the fork, right after the copied history
+ * and in the same transaction, and take effect from step + 1. The parent never
+ * sees them.
  */
 export function forkRun(
 	store: RunStore,
 	runId: RunId,
-	options: { step: number; name: string; purpose?: string | null },
+	options: {
+		step: number;
+		name: string;
+		purpose?: string | null;
+		interventions?: readonly Intervention[];
+	},
 ): RunRecord {
 	const parent = store.getRun(runId);
 
@@ -62,7 +74,8 @@ export function forkRun(
 	}
 
 	// Events are stored in order, so the last one is at the latest step played.
-	const playedSteps = store.listEvents(runId).at(-1)?.step ?? 0;
+	const records = store.listEvents(runId);
+	const playedSteps = records.at(-1)?.step ?? 0;
 
 	if (
 		!Number.isInteger(options.step) ||
@@ -80,6 +93,18 @@ export function forkRun(
 				? "created"
 				: "running";
 
+	// A fork starts from the default clock, like every run (see `buildRun`).
+	const interventionEvents = buildInterventionEvents({
+		history: records
+			.map((record) => record.payload)
+			.filter((event) => event.step <= options.step),
+		agents: parent.scenario.agents,
+		step: options.step,
+		time: new SimulationClock().timeAt(options.step),
+		totalSteps: parent.scenario.steps,
+		interventions: options.interventions ?? [],
+	});
+
 	return store.createFork({
 		runId: newRunId(),
 		parentRunId: runId,
@@ -89,6 +114,7 @@ export function forkRun(
 		seed: parent.seed,
 		scenario: { ...parent.scenario, name: options.name },
 		status,
+		events: interventionEvents,
 	});
 }
 
@@ -114,10 +140,15 @@ const stepping = new Set<RunId>();
  * Advances a run by one step and returns the updated run with only the events
  * that step added. The simulation is rebuilt from the store each time, so no
  * state is kept in the process between steps.
+ *
+ * `interventions` are validated, then recorded with the step in one
+ * transaction (see `Simulation.step`): they take effect at this step, and if
+ * the step fails nothing is recorded.
  */
 export async function stepRun(
 	store: RunStore,
 	runId: RunId,
+	options: { interventions?: readonly Intervention[] } = {},
 ): Promise<{ run: RunRecord; events: EventRecord[] }> {
 	if (stepping.has(runId)) {
 		throw new RunBusyError(runId);
@@ -136,7 +167,16 @@ export async function stepRun(
 			throw new RunCompletedError(runId);
 		}
 
-		await simulation.step();
+		const interventions = buildInterventionEvents({
+			history: simulation.events.toList(),
+			agents: run.scenario.agents,
+			step: simulation.clock.step,
+			time: simulation.clock.now,
+			totalSteps,
+			interventions: options.interventions ?? [],
+		});
+
+		await simulation.step(interventions);
 
 		// Status is derived from where the simulation is, not from the previous
 		// status, so a run left stale by a crash fixes itself on the next step.

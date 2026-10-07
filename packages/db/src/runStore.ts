@@ -231,6 +231,8 @@ export class RunStore implements Disposable {
 		seed: string;
 		scenario: ScenarioConfig;
 		status: RunStatus;
+		/** Events recorded after the copy, in the same transaction (e.g. interventions). */
+		events?: readonly AnyEvent[];
 		createdAt?: Date;
 	}): RunRecord {
 		const createdAt = params.createdAt ?? new Date();
@@ -265,6 +267,19 @@ export class RunStore implements Disposable {
          FROM events WHERE run_id = ? AND step <= ? ORDER BY id ASC`,
 				)
 				.run(params.runId, params.parentRunId, params.step);
+			const insert = this.#db.prepare(
+				`INSERT INTO events (run_id, step, type, payload_json, timestamp)
+         VALUES (?, ?, ?, ?, ?)`,
+			);
+			for (const event of params.events ?? []) {
+				insert.run(
+					params.runId,
+					event.step,
+					event.type,
+					JSON.stringify(event),
+					event.timestamp,
+				);
+			}
 			this.#db.exec("COMMIT");
 		} catch (error) {
 			this.#db.exec("ROLLBACK");

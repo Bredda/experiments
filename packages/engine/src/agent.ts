@@ -22,12 +22,18 @@ export abstract class Agent {
 		this.memoryType = memoryType;
 	}
 
-	observe(params: { step: Step; time: Time; room: RoomView }): Observation {
+	observe(params: {
+		step: Step;
+		time: Time;
+		room: RoomView;
+		instructions?: string[];
+	}): Observation {
 		return observationSchema.parse({
 			agentId: this.id,
 			room: params.room,
 			step: params.step,
 			time: params.time,
+			instructions: params.instructions,
 		});
 	}
 

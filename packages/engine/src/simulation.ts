@@ -15,6 +15,7 @@ import type { Agent } from "./agent";
 import { SimulationClock } from "./clock";
 import { StepNotFoundError } from "./errors";
 import { EventLog } from "./eventLog";
+import { instructionsAt } from "./interventions";
 import type { Room } from "./room";
 import type { RunConfig } from "./runConfig";
 import type { Scheduler } from "./scheduler/base";
@@ -119,6 +120,7 @@ export class Simulation {
 			step,
 			time,
 			room: this.room.view(agent.id, history),
+			instructions: instructionsAt(history, agent.id, step),
 		});
 	}
 
@@ -130,26 +132,30 @@ export class Simulation {
 	 * Runs one step and returns the events it produced. A step is atomic: its
 	 * events are persisted together once every agent has answered, and if any
 	 * agent fails nothing is recorded and the clock does not advance.
+	 *
+	 * `interventions` are events already built for the step that just ended
+	 * (see `buildInterventionEvents`). They are part of the history the agents
+	 * observe and are committed with the step, so a failed step records none.
 	 */
-	async step(): Promise<AnyEvent[]> {
+	async step(interventions: readonly AnyEvent[] = []): Promise<AnyEvent[]> {
 		this.clock.advance();
 
 		try {
-			return await this.#runStep();
+			return await this.#runStep(interventions);
 		} catch (error) {
 			this.clock.rewind();
 			throw error;
 		}
 	}
 
-	async #runStep(): Promise<AnyEvent[]> {
-		const stepEvents: AnyEvent[] = [];
+	async #runStep(interventions: readonly AnyEvent[]): Promise<AnyEvent[]> {
+		const stepEvents: AnyEvent[] = [...interventions];
 		const candidates: Candidate[] = [];
 
 		// Agents propose simultaneously: all of them observe the history as it
 		// was at the start of the step, never each other's proposals. Their
 		// calls (slow for LLM-backed agents) therefore run concurrently.
-		const history = this.events.toList();
+		const history = [...this.events.toList(), ...interventions];
 
 		const results = await Promise.allSettled(
 			this.agents.map(async (agent) => {

@@ -36,6 +36,7 @@ export class LLMAgent extends Agent {
 			name: this.name,
 			persona: this.#persona,
 			memory,
+			instructions: observation.instructions,
 		});
 		const { proposal, call } = await this.#runner(prompt);
 

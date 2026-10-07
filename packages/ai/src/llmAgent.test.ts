@@ -52,12 +52,13 @@ function ownProposal(step: number, reasoning: string): AnyEvent {
 	});
 }
 
-function observe(events: AnyEvent[]) {
+function observe(events: AnyEvent[], instructions?: string[]) {
 	return observationSchema.parse({
 		agentId: alice,
 		step: events.length + 1,
 		time,
 		room: { roomId, visibleEvents: events, members: [alice, bob] },
+		instructions,
 	});
 }
 
@@ -151,6 +152,32 @@ describe("LLMAgent prompt", () => {
 		expect(full.prompts[0]?.[0]?.content).toContain("line-1");
 		expect(windowed.prompts[0]?.[0]?.content).not.toContain("line-1");
 		expect(windowed.prompts[0]?.[0]?.content).toContain("line-8");
+	});
+
+	it("is unchanged by an empty list of instructions", async () => {
+		const without = fakeRunner(silent);
+		const empty = fakeRunner(silent);
+
+		await agent(without.runner).propose(observe([]));
+		await agent(empty.runner).propose(observe([], []));
+
+		expect(empty.prompts).toEqual(without.prompts);
+		expect(without.prompts[0]?.[0]?.content).not.toContain("<instructions>");
+	});
+
+	it("adds the experimenter's instructions to the single system message", async () => {
+		const { runner, prompts } = fakeRunner(silent);
+
+		const proposal = await agent(runner).propose(
+			observe([], ["Answer only in French.", "Be brief."]),
+		);
+
+		expect(prompts[0]?.map((part) => part.role)).toEqual(["system", "user"]);
+		expect(prompts[0]?.[0]?.content).toContain(
+			"<instructions>\nAnswer only in French.\nBe brief.\n</instructions>",
+		);
+		// The recorded prompt is the one sent, so the effect is traceable.
+		expect(proposal.prompt).toEqual(prompts[0]);
 	});
 
 	it("includes the agent's own earlier reasoning", async () => {

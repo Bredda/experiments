@@ -1,4 +1,5 @@
 import {
+	InvalidInterventionError,
 	RunBusyError,
 	RunCompletedError,
 	RunNotFoundError,
@@ -11,7 +12,7 @@ function statusFor(err: FastifyError): number {
 	if (err instanceof RunNotFoundError || err instanceof StepNotFoundError) {
 		return 404;
 	}
-	if (err instanceof ZodError) {
+	if (err instanceof ZodError || err instanceof InvalidInterventionError) {
 		return 400;
 	}
 	if (err instanceof RunCompletedError || err instanceof RunBusyError) {

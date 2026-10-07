@@ -59,7 +59,7 @@ Phase 2: the engine honors interventions (`refactor(engine): …`)
 
 Phase 3: the API (`feat(api): intervene on a run when stepping or forking`)
 
-- [ ] `POST /runs/:id/steps/next` accepts an optional body `stepRequestSchema` (Fastify rejects an empty JSON body: the ui client already only sends a content type with a body); `POST /runs/:id/fork` passes `interventions` through; `InvalidInterventionError` is mapped to 400 in `error-handler.ts`; descriptions and the 400 response added for `/reference`. **Verify:** `pnpm --filter @experiments/api check-types`; with the api running, `curl` a step with a redaction, then `GET /runs/:id/steps/N+1/observations` shows it applied and `GET /runs/:id/events` contains the event at step N; a bad target returns 400.
+- [x] `POST /runs/:id/steps/next` accepts an optional body `stepRequestSchema` (no Fastify `body` schema on this route, because Fastify rejects a request without a body when one is declared: Zod validates it in the handler and the shape is in the route description; the ui client already only sends a content type with a body); `POST /runs/:id/fork` passes `interventions` through; `InvalidInterventionError` is mapped to 400 in `error-handler.ts`; descriptions and the 400 response added for `/reference`. **Verify:** `pnpm --filter @experiments/api check-types`; with the api running, `curl` a step with a redaction, then `GET /runs/:id/steps/N+1/observations` shows it applied and `GET /runs/:id/events` contains the event at step N; a bad target returns 400.
 
 Phase 4: ui plumbing (`refactor(ui): …`)
 

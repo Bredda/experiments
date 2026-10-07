@@ -38,7 +38,7 @@ One commit per phase, in this order (conventional commits, they feed release-ple
 - [x] `AgentBehaviorFactory` takes one params object instead of four positional arguments; update the registrations, `buildAgent` and the `llm` registration in `packages/ai/src/index.ts`. Files: `packages/engine/src/agents/registry.ts`, `scenario/factory.ts`, `packages/ai/src/index.ts`. **Verify:** `pnpm check-types`, `pnpm test`, no behavior change.
 
 **2. `refactor(ai): extract llm prompt building and model runner`**
-- [ ] Pure `buildPrompt`, injectable `runner`, `anthropicRunner.ts` as the only file importing `env`; per-model lazy cache. Files: `packages/ai/src/*`. **Verify:** `pnpm check-types`; the prompt text is unchanged.
+- [x] Pure `buildPrompt`, injectable `runner`, `anthropicRunner.ts` as the only file importing `env`; per-model lazy cache. Files: `packages/ai/src/*`. **Verify:** `pnpm check-types`; the prompt text is unchanged.
 
 **3. `feat: define persona and model per agent in the scenario`**
 - [ ] `AGENT_MODELS`, `persona?`, `model?` on `agentConfigSchema`, rejected on non-`llm` agents; `LLMAgent` uses them. Files: `packages/types/src/scenario.ts`, `packages/engine/src/scenario/factory.ts`, `packages/ai/src/*`, `docs/agent/engine.md`. **Verify:** engine test on schema acceptance and rejection; `pnpm test`.

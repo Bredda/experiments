@@ -1,5 +1,6 @@
 "use client";
 
+import type { Intervention } from "@experiments/types/interventions";
 import { forkRunRequestSchema } from "@experiments/types/run";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
@@ -26,10 +27,15 @@ export function ForkForm({
 	runId,
 	step,
 	defaultName,
+	interventions,
+	interventionLabels,
 }: {
 	runId: string;
 	step: number;
 	defaultName: string;
+	/** Recorded in the fork, after the copied history; they take effect at `step + 1`. */
+	interventions: readonly Intervention[];
+	interventionLabels: string[];
 }) {
 	const router = useRouter();
 
@@ -38,7 +44,11 @@ export function ForkForm({
 		validators: { onSubmit: forkFormSchema },
 		onSubmit: async ({ value }) => {
 			try {
-				const run = await forkRun(runId, { step, ...value });
+				const run = await forkRun(runId, {
+					step,
+					...value,
+					interventions: [...interventions],
+				});
 				toast.add({
 					type: "success",
 					description: `Run "${run.name}" has been forked at step ${step}.`,
@@ -62,6 +72,21 @@ export function ForkForm({
 			}}
 		>
 			<FieldGroup className="gap-4">
+				{interventions.length > 0 && (
+					<div className="space-y-1 rounded-md border bg-card p-3 text-xs">
+						<p className="font-medium">
+							{interventions.length} intervention
+							{interventions.length === 1 ? "" : "s"}, taking effect at step{" "}
+							{step + 1}
+						</p>
+						<ul className="space-y-1 text-muted-foreground">
+							{interventionLabels.map((label, index) => (
+								// biome-ignore lint/suspicious/noArrayIndexKey: the list is static and has no ids
+								<li key={`${index}-${label}`}>{label}</li>
+							))}
+						</ul>
+					</div>
+				)}
 				<form.Field name="name">
 					{(field) => {
 						const isInvalid =
@@ -113,6 +138,8 @@ export function ForkForm({
 					{(isSubmitting) => (
 						<Button type="submit" disabled={isSubmitting}>
 							Fork at step {step}
+							{interventions.length > 0 &&
+								` with ${interventions.length} intervention${interventions.length === 1 ? "" : "s"}`}
 						</Button>
 					)}
 				</form.Subscribe>

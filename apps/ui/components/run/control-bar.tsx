@@ -1,3 +1,4 @@
+import type { Intervention } from "@experiments/types/interventions";
 import type { RunRecord } from "@experiments/types/run";
 import {
 	ArrowLeft01Icon,
@@ -8,6 +9,7 @@ import {
 	PlayIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ForkSheet } from "./fork-sheet";
@@ -28,6 +30,9 @@ export function ControlBar({
 	onNextStep,
 	onPlay,
 	onPause,
+	tray,
+	drafts,
+	draftLabels,
 }: {
 	run: RunRecord;
 	/** The step the view shows: the cursor, or the latest step when live. */
@@ -45,6 +50,11 @@ export function ControlBar({
 	onNextStep: () => void;
 	onPlay: () => void;
 	onPause: () => void;
+	/** The pending interventions, shown before the buttons that send them. */
+	tray: ReactNode;
+	/** Sent with the fork, which is made at the step the view shows. */
+	drafts: readonly Intervention[];
+	draftLabels: string[];
 }) {
 	const completed = run.status === "completed";
 
@@ -108,6 +118,7 @@ export function ControlBar({
 						<HugeiconsIcon icon={ArrowRight01Icon} />
 					</Button>
 				</div>
+				{tray}
 				<div className="flex items-center gap-2">
 					<Button
 						variant="outline"
@@ -140,7 +151,12 @@ export function ControlBar({
 						</Button>
 					)}
 				</div>
-				<ForkSheet runId={run.runId} step={step} />
+				<ForkSheet
+					runId={run.runId}
+					step={step}
+					interventions={drafts}
+					interventionLabels={draftLabels}
+				/>
 			</div>
 		</div>
 	);

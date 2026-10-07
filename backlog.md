@@ -25,6 +25,10 @@ Each line says what, and why it came up. Items marked *(from todo)* were the pre
 - From an event in the inspector, a link to "what its agent observed at that step".
 - Run list: delete, rename or archive runs (there is no delete route; names are generated), and short notes or tags on a run to keep track of what an experiment was for.
 
+## Interventions
+
+- Show the interventions of a run on its fork-tree lane (a mark at the step they follow). The fork tree API carries no interventions today, so this needs the node to carry them. *(from axis 4)*
+
 ## Running and scenarios
 
 - Edit the scenario of a fork: scheduler, seed and steps first (they do not touch the copied history), agent behavior and memory later. The fork form only asks for a name and a purpose today, so a fork re-samples but does not yet "change one parameter". The fork then stops being reproducible from its own scenario alone, which `docs/agent/engine.md` has to say.

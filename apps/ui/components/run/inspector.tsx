@@ -5,6 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
 import { AgentPanel } from "./agent-panel";
 import { EventPanel } from "./event-panel";
+import type { InterveneControls } from "./intervene-panel";
 import type { RunSelection } from "./selection";
 
 function selectionTitle(selection: RunSelection) {
@@ -19,6 +20,7 @@ export function Inspector({
 	step,
 	onSelect,
 	onClose,
+	intervene,
 }: {
 	run: RunRecord;
 	selection: RunSelection;
@@ -27,6 +29,7 @@ export function Inspector({
 	step: number;
 	onSelect: (selection: RunSelection) => void;
 	onClose: () => void;
+	intervene: InterveneControls;
 }) {
 	const event =
 		selection.type === "event"
@@ -68,9 +71,15 @@ export function Inspector({
 						agentId={selection.id}
 						step={step}
 						onSelectEvent={(id) => onSelect({ type: "event", id })}
+						intervene={intervene}
 					/>
 				) : event ? (
-					<EventPanel event={event} events={events} className="h-full" />
+					<EventPanel
+						event={event}
+						events={events}
+						className="h-full"
+						onSelectEvent={(id) => onSelect({ type: "event", id })}
+					/>
 				) : (
 					<div className="flex h-full items-center justify-center text-muted-foreground text-sm">
 						Event not found

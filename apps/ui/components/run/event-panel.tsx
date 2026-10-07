@@ -3,9 +3,12 @@ import type {
 	AgentJoined,
 	AgentPromptBuilt,
 	AnyEvent,
+	InterventionMemoryRedacted,
+	InterventionPromptInjected,
 } from "@experiments/types/events";
-import { modelCallLabel } from "@/lib/run-view";
+import { appliesAtStep, eventExcerpt, modelCallLabel } from "@/lib/run-view";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
 import {
 	Card,
 	CardContent,
@@ -94,6 +97,66 @@ function RenderActionProposed({
 	);
 }
 
+function RenderIntervention({
+	event,
+	events,
+	className,
+	onSelectEvent,
+}: {
+	event: InterventionPromptInjected | InterventionMemoryRedacted;
+	events: AnyEvent[];
+	className?: string;
+	onSelectEvent?: (eventId: string) => void;
+}) {
+	return (
+		<Card className={cn(className)}>
+			<CardHeader>
+				<CardTitle>
+					{event.type === "intervention.prompt_injected"
+						? `Instruction to ${event.agentId}`
+						: `Redacted from ${event.agentId}`}
+				</CardTitle>
+				<CardDescription>
+					id: {event.id} * {event.timestamp} * Recorded after step {event.step}
+				</CardDescription>
+			</CardHeader>
+			<CardContent className="space-y-3 text-sm">
+				<p>
+					Experimenter intervention. It takes effect at step{" "}
+					{appliesAtStep(event)}, and the agent was never shown it as an event.
+				</p>
+				{event.type === "intervention.prompt_injected" ? (
+					<div className="space-y-1">
+						<p className="text-xs text-muted-foreground">
+							Added to the system message of step {appliesAtStep(event)} only
+						</p>
+						<pre className="text-xs whitespace-pre-wrap">{event.content}</pre>
+					</div>
+				) : (
+					<div className="space-y-1">
+						<p className="text-xs text-muted-foreground">
+							Removed from {event.agentId}&apos;s view from step{" "}
+							{appliesAtStep(event)} on
+						</p>
+						<p className="text-xs">
+							{eventExcerpt(events, event.targetEventId)}
+						</p>
+						{onSelectEvent && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => onSelectEvent(event.targetEventId)}
+							>
+								Open the redacted event
+							</Button>
+						)}
+					</div>
+				)}
+			</CardContent>
+		</Card>
+	);
+}
+
 function RenderGenericEvent({
 	event,
 	className,
@@ -122,10 +185,12 @@ export function EventPanel({
 	event,
 	events,
 	className,
+	onSelectEvent,
 }: {
 	event: AnyEvent;
 	events: AnyEvent[];
 	className?: string;
+	onSelectEvent?: (eventId: string) => void;
 }) {
 	return (
 		<ScrollArea className={cn(className)}>
@@ -139,9 +204,21 @@ export function EventPanel({
 					className="h-full"
 				/>
 			)}
-			{event.type !== "agent.joined" && event.type !== "action.proposed" && (
-				<RenderGenericEvent event={event} className="h-full" />
+			{(event.type === "intervention.prompt_injected" ||
+				event.type === "intervention.memory_redacted") && (
+				<RenderIntervention
+					event={event}
+					events={events}
+					className="h-full"
+					onSelectEvent={onSelectEvent}
+				/>
 			)}
+			{event.type !== "agent.joined" &&
+				event.type !== "action.proposed" &&
+				event.type !== "intervention.prompt_injected" &&
+				event.type !== "intervention.memory_redacted" && (
+					<RenderGenericEvent event={event} className="h-full" />
+				)}
 		</ScrollArea>
 	);
 }

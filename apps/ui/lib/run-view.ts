@@ -6,6 +6,7 @@ import {
 	type InterventionMemoryRedacted,
 	type InterventionPromptInjected,
 } from "@experiments/types/events";
+import type { Intervention } from "@experiments/types/interventions";
 import type { RunRecord } from "@experiments/types/run";
 
 export type EventType = AnyEvent["type"];
@@ -119,9 +120,9 @@ export function appliesAtStep(event: InterventionEvent): number {
 	return event.step + 1;
 }
 
-/** One line for an intervention: what was done, to whom. */
+/** One line for an intervention, asked for or recorded: what is done, to whom. */
 export function interventionLabel(
-	event: InterventionEvent,
+	event: Intervention,
 	events: readonly AnyEvent[],
 ): string {
 	switch (event.type) {
@@ -520,4 +521,92 @@ export function modelCallLabel(prompt: AgentPromptBuilt): string | undefined {
 	}
 
 	return parts.length === 0 ? undefined : parts.join(" · ");
+}
+
+export type InterventionTarget = {
+	/**
+	 * "queue": recorded with the next step of the live run. "fork": applied in
+	 * a fork made at `step`, because the view is on a past step or the run has
+	 * no step left to play.
+	 */
+	mode: "queue" | "fork";
+	/** The step the view shows, where the intervention is recorded. */
+	step: number;
+	/** The step it takes effect at. */
+	appliesAt: number;
+	/** False when the scenario has no step after `step`: nothing to apply it to. */
+	available: boolean;
+};
+
+/** Where an intervention made from the view at `step` would go. */
+export function interventionTarget(params: {
+	live: boolean;
+	completed: boolean;
+	step: number;
+	scenarioSteps: number;
+}): InterventionTarget {
+	return {
+		mode: params.live && !params.completed ? "queue" : "fork",
+		step: params.step,
+		appliesAt: params.step + 1,
+		available: params.step < params.scenarioSteps,
+	};
+}
+
+export type RedactionCandidate = {
+	eventId: string;
+	step: number;
+	kind: "message" | "proposal";
+	label: string;
+	/** Already removed from this agent's view by an earlier intervention. */
+	redacted: boolean;
+};
+
+/**
+ * What an agent remembers, so what can be redacted from its view: every
+ * message and its own proposals, newest first. It mirrors the rule the engine
+ * enforces (`buildInterventionEvents`), which stays the one that rejects.
+ * `events` is the run up to the step the intervention follows, so the
+ * candidates include that step's own events, which the observation of that
+ * step does not show yet.
+ */
+export function redactionCandidates(
+	events: readonly AnyEvent[],
+	agentId: string,
+): RedactionCandidate[] {
+	const redacted = new Set(
+		events.flatMap((event) =>
+			event.type === "intervention.memory_redacted" && event.agentId === agentId
+				? [event.targetEventId]
+				: [],
+		),
+	);
+	const candidates: RedactionCandidate[] = [];
+
+	for (const event of events) {
+		if (event.type === "message.published") {
+			candidates.push({
+				eventId: event.id,
+				step: event.step,
+				kind: "message",
+				label: `${event.agentId}: "${event.content}"`,
+				redacted: redacted.has(event.id),
+			});
+		}
+		if (event.type === "action.proposed" && event.agentId === agentId) {
+			const { action } = event;
+			candidates.push({
+				eventId: event.id,
+				step: event.step,
+				kind: "proposal",
+				label:
+					action.type === "speak"
+						? `Own proposal, speak: "${action.content}"`
+						: `Own proposal, stay silent${action.reasoning ? `: ${action.reasoning}` : ""}`,
+				redacted: redacted.has(event.id),
+			});
+		}
+	}
+
+	return candidates.reverse();
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Intervention } from "@experiments/types/interventions";
 import type { ForkTree } from "@experiments/types/run";
 import { GitForkIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -7,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ForkForm } from "@/components/fork/fork-form";
 import { RunStatusBadge } from "@/components/runs/status-badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Sheet,
@@ -67,7 +69,18 @@ function useForkTree(runId: string, open: boolean): State {
  * The one place to fork: the fork tree of the run, and a form to fork it at
  * `step`, the step the time cursor shows.
  */
-export function ForkSheet({ runId, step }: { runId: string; step: number }) {
+export function ForkSheet({
+	runId,
+	step,
+	interventions,
+	interventionLabels,
+}: {
+	runId: string;
+	step: number;
+	/** Prepared interventions: the fork records them and they take effect at `step + 1`. */
+	interventions: readonly Intervention[];
+	interventionLabels: string[];
+}) {
 	const [open, setOpen] = useState(false);
 	const state = useForkTree(runId, open);
 	const origin =
@@ -80,6 +93,9 @@ export function ForkSheet({ runId, step }: { runId: string; step: number }) {
 			<SheetTrigger render={<Button variant="outline" size="sm" />}>
 				<HugeiconsIcon icon={GitForkIcon} data-icon="inline-start" />
 				Fork
+				{interventions.length > 0 && (
+					<Badge variant="outline">{interventions.length}</Badge>
+				)}
 			</SheetTrigger>
 			<SheetContent
 				side="right"
@@ -115,6 +131,8 @@ export function ForkSheet({ runId, step }: { runId: string; step: number }) {
 							<ForkForm
 								runId={runId}
 								step={step}
+								interventions={interventions}
+								interventionLabels={interventionLabels}
 								defaultName={suggestForkName(origin, state.tree.nodes)}
 							/>
 						</aside>

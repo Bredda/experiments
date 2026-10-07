@@ -101,7 +101,7 @@ Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/a
 
 ## Testing
 
-Vitest runs in `packages/engine` (`pnpm --filter @experiments/engine test`) and `apps/ui` (`pnpm --filter ui test`); tests sit next to the code as `*.test.ts` and use a temporary SQLite file, never real LLM calls. When changing simulation behavior, cover the contract (silent steps, time advancement, fixed-seed reproducibility, scheduler selection, run persistence). In `apps/ui`, Vitest covers only pure view logic in `lib/` (node environment, no DOM or component tests). Other packages have no runner yet: add a `test` script there when you write their first test.
+Vitest runs in `packages/engine` (`pnpm --filter @experiments/engine test`), `packages/ai` (`pnpm --filter @experiments/ai test`) and `apps/ui` (`pnpm --filter ui test`); tests sit next to the code as `*.test.ts` and use a temporary SQLite file, never real LLM calls (in `packages/ai`, `LLMAgent` takes an injected `ProposalRunner`, so tests pass a fake one and never import `anthropicRunner.ts`, the only file that reads the API key). When changing simulation behavior, cover the contract (silent steps, time advancement, fixed-seed reproducibility, scheduler selection, run persistence). In `apps/ui`, Vitest covers only pure view logic in `lib/` (node environment, no DOM or component tests). Other packages have no runner yet: add a `test` script there when you write their first test.
 
 ## Where to look
 

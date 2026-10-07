@@ -64,7 +64,7 @@ The `llm` behavior is registered by a side effect of importing `@experiments/ai`
 
 ## Scenarios
 
-A scenario is a `ScenarioConfig` (`scenarioConfigSchema`, strict: unknown keys are rejected; rooms may only reference declared agents; seed is `0-9A-Z` only). It is not read from files: the UI builds it and sends it to `POST /runs`, and the run stores it as JSON.
+A scenario is a `ScenarioConfig` (`scenarioConfigSchema`, strict: unknown keys are rejected; rooms may only reference declared agents; seed is `0-9A-Z` only). An agent is `{ id, behavior, memory?, persona?, model? }`: `persona` (instructions that replace the default opening sentence of the prompt) and `model` (`AGENT_MODELS`, `DEFAULT_AGENT_MODEL` when absent) only exist for the `llm` behavior and are rejected on the others. Without them an `llm` agent gets the prompt and model it always had. It is not read from files: the UI builds it and sends it to `POST /runs`, and the run stores it as JSON.
 
 ## Persistence
 

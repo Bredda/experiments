@@ -4,8 +4,6 @@ import { createAgent } from "langchain";
 import { type Proposal, proposalSchema } from "./proposal";
 import type { ProposalRunner } from "./runner";
 
-export const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
-
 /** One runner per model id, built on first use and then shared. */
 const runners = new Map<string, ProposalRunner>();
 

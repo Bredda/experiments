@@ -1,5 +1,6 @@
 import type { MemoryType } from "@experiments/types";
 import type { AgentId, RoomId } from "@experiments/types/ids";
+import type { AgentModel } from "@experiments/types/scenario";
 import type { Agent } from "../agent";
 import { Registry } from "../registry";
 import { MentionedAgent } from "./mentionedAgent";
@@ -11,6 +12,8 @@ export type AgentBehaviorParams = {
 	name: string;
 	roomId: RoomId;
 	memoryType?: MemoryType;
+	persona?: string;
+	model?: AgentModel;
 };
 
 export type AgentBehaviorFactory = (params: AgentBehaviorParams) => Agent;

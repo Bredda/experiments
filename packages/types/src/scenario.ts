@@ -5,13 +5,41 @@ export const AGENT_BEHAVIORS = ["mentioned", "silent", "llm"] as const;
 export const agentBehaviorSchema = z.enum(AGENT_BEHAVIORS);
 export type AgentBehavior = (typeof AGENT_BEHAVIORS)[number];
 
+/** Models an `llm` agent can run on. */
+export const AGENT_MODELS = [
+	"claude-haiku-4-5-20251001",
+	"claude-sonnet-5-5",
+	"claude-opus-5-5",
+] as const;
+export const agentModelSchema = z.enum(AGENT_MODELS);
+export type AgentModel = (typeof AGENT_MODELS)[number];
+/** The model of an `llm` agent that does not name one. */
+export const DEFAULT_AGENT_MODEL: AgentModel = AGENT_MODELS[0];
+
 export const agentConfigSchema = z
 	.object({
 		id: z.string(),
 		behavior: agentBehaviorSchema,
 		memory: memoryTypeSchema.optional(),
+		persona: z.string().trim().min(1).optional(),
+		model: agentModelSchema.optional(),
 	})
-	.strict();
+	.strict()
+	.check((ctx) => {
+		const agent = ctx.value;
+
+		// Only the llm behavior reads them: elsewhere they would be silently ignored.
+		for (const field of ["persona", "model"] as const) {
+			if (agent[field] !== undefined && agent.behavior !== "llm") {
+				ctx.issues.push({
+					code: "custom",
+					input: agent,
+					path: [field],
+					message: `Agent '${agent.id}': '${field}' is only valid for the 'llm' behavior`,
+				});
+			}
+		}
+	});
 export type AgentConfig = z.infer<typeof agentConfigSchema>;
 
 export const roomConfigSchema = z

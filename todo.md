@@ -51,7 +51,7 @@ One commit per phase, in this order (conventional commits, they feed release-ple
 - [ ] Real run: confirm that LangChain fills `usage_metadata` on the structured-output path (the runner reads it and tolerates its absence). Not done: the `ANTHROPIC_API_KEY` in `.env` is rejected by the API (401). Needs a valid key and a one-step run with an `llm` agent.
 
 **6. `test(ai): run the llm agent offline with a fake runner`**
-- [ ] `test` script, vitest and config in `packages/ai`; tests for the prompt with and without persona, memory in the prompt, one system message, proposal mapping, metadata. Update the Testing section of `AGENT.md`. **Verify:** `pnpm --filter @experiments/ai test`, no API key needed.
+- [x] `test` script, vitest and config in `packages/ai`; tests for the prompt with and without persona, memory in the prompt, one system message, proposal mapping, metadata. Update the Testing section of `AGENT.md`. **Verify:** `pnpm --filter @experiments/ai test`, no API key needed.
 
 **7. `feat(ui): configure persona, model and memory per agent and show model usage`**
 - [ ] Persona textarea and model select (for `llm` only) in the agent dialog, agent card, `toScenarioConfig`; persona and model in `agentSummary` and the agent panel; model and tokens next to the prompt. Files: `apps/ui/components/create-run/*`, `apps/ui/components/run/*`, `apps/ui/lib/run-view.ts`, `docs/agent/api-ui.md`. **Verify:** `pnpm --filter ui test` for the `lib/` part, manual check of the form and the run page.

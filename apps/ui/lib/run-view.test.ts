@@ -6,6 +6,8 @@ import {
 	actionSelectedSchema,
 	agentJoinedSchema,
 	agentPromptBuiltSchema,
+	interventionMemoryRedactedSchema,
+	interventionPromptInjectedSchema,
 	messagePublishedSchema,
 } from "@experiments/types/events";
 import type { RunRecord } from "@experiments/types/run";
@@ -13,11 +15,13 @@ import { describe, expect, it } from "vitest";
 import {
 	agentRooms,
 	agentSummary,
+	appliesAtStep,
 	buildTimeline,
 	EVENT_TYPES,
 	eventRoomId,
 	eventsUntil,
 	filterEvents,
+	interventionLabel,
 	lastStep,
 	modelCallLabel,
 	NO_FILTER,
@@ -90,6 +94,23 @@ const prompt = (agentId: string, step: number) =>
 		prompt: [{ role: "system", content: "x" }],
 	});
 
+/** Recorded at `step`, the step it follows. */
+const redacted = (agentId: string, targetEventId: string, step: number) =>
+	interventionMemoryRedactedSchema.parse({
+		...base(step),
+		type: "intervention.memory_redacted",
+		agentId,
+		targetEventId,
+	});
+
+const instructed = (agentId: string, content: string, step: number) =>
+	interventionPromptInjectedSchema.parse({
+		...base(step),
+		type: "intervention.prompt_injected",
+		agentId,
+		content,
+	});
+
 const promptWith = (
 	agentId: string,
 	step: number,
@@ -140,6 +161,11 @@ describe("eventRoomId", () => {
 	it("falls back to the room the agent joined for events without a room", () => {
 		expect(eventRoomId(proposedSilent("bob", 1), rooms)).toBe("side");
 		expect(eventRoomId(prompt("alice", 1), rooms)).toBe("main");
+	});
+
+	it("puts an intervention in the room of the agent it targets", () => {
+		expect(eventRoomId(redacted("bob", randomUUID(), 1), rooms)).toBe("side");
+		expect(eventRoomId(instructed("alice", "be brief", 1), rooms)).toBe("main");
 	});
 
 	it("has no room for an agent that never joined", () => {
@@ -291,6 +317,86 @@ describe("buildTimeline", () => {
 	});
 });
 
+describe("buildTimeline interventions", () => {
+	const hello = published("alice", "main", 1);
+	const events: AnyEvent[] = [
+		joined("alice", "main"),
+		joined("bob", "main"),
+		instructed("bob", "start formal", 0),
+		proposedSpeak("alice", "main", 1),
+		selected("alice", "main", 1),
+		hello,
+		redacted("bob", hello.id, 1),
+		proposedSilent("alice", 2),
+		proposedSilent("bob", 2),
+	];
+
+	it("puts an intervention after the step it follows, and before the first step when it follows none", () => {
+		expect(buildTimeline(events, null).map((item) => item.kind)).toEqual([
+			"joined",
+			"joined",
+			"intervention",
+			"step",
+			"message",
+			"intervention",
+			"step",
+			"silence",
+		]);
+	});
+
+	it("says which step it takes effect at and what it did", () => {
+		const items = buildTimeline(events, null).filter(
+			(item) => item.kind === "intervention",
+		);
+
+		expect(items).toMatchObject([
+			{
+				type: "intervention.prompt_injected",
+				step: 0,
+				appliesAt: 1,
+				label: 'Instruction to bob: "start formal"',
+			},
+			{
+				type: "intervention.memory_redacted",
+				step: 1,
+				appliesAt: 2,
+				label: 'Redacted from bob: alice: "hi"',
+			},
+		]);
+	});
+
+	it("keeps the id of the intervention event, so a click opens it", () => {
+		const [first] = buildTimeline(events, null).filter(
+			(item) => item.kind === "intervention",
+		);
+
+		expect(first).toMatchObject({ eventId: events[2]?.id });
+	});
+});
+
+describe("interventionLabel", () => {
+	const proposal = proposedSilent("bob", 1);
+	const history: AnyEvent[] = [published("alice", "main", 1), proposal];
+
+	it("names what was redacted: a message, a proposal, or an event it cannot find", () => {
+		const [message] = history as [AnyEvent];
+
+		expect(interventionLabel(redacted("bob", message.id, 1), history)).toBe(
+			'Redacted from bob: alice: "hi"',
+		);
+		expect(interventionLabel(redacted("bob", proposal.id, 1), history)).toBe(
+			"Redacted from bob: its proposal at step 1",
+		);
+		expect(interventionLabel(redacted("bob", randomUUID(), 1), history)).toBe(
+			"Redacted from bob: an event",
+		);
+	});
+
+	it("applies at the step after the one it follows", () => {
+		expect(appliesAtStep(instructed("bob", "x", 4))).toBe(5);
+	});
+});
+
 describe("agentSummary", () => {
 	const events: AnyEvent[] = [
 		joined("alice", "main"),
@@ -343,6 +449,21 @@ describe("agentSummary", () => {
 			agentSummary(config, [joined("alice", "main"), ...many], "alice")
 				?.recentProposals,
 		).toHaveLength(5);
+	});
+
+	it("counts the interventions the agent received", () => {
+		const withInterventions: AnyEvent[] = [
+			...events,
+			redacted("alice", randomUUID(), 2),
+			instructed("alice", "x", 2),
+			redacted("bob", randomUUID(), 2),
+		];
+
+		expect(agentSummary(config, withInterventions, "alice")).toMatchObject({
+			interventionCount: 2,
+			messageCount: 1,
+		});
+		expect(agentSummary(config, events, "alice")?.interventionCount).toBe(0);
 	});
 
 	it("knows nothing about an agent outside the scenario", () => {
@@ -439,6 +560,45 @@ describe("observationSummary", () => {
 
 		expect(summary.messages).toEqual([]);
 		expect(summary.earlierProposals).toBe(0);
+	});
+
+	it("shows the instructions the agent was given and what was removed from its view", () => {
+		const said = history.find(
+			(e) => e.type === "message.published",
+		) as AnyEvent;
+		const log: AnyEvent[] = [...history, redacted("alice", said.id, 2)];
+		const withInstruction = observationSchema.parse({
+			agentId: "alice",
+			step: 3,
+			time: TIME,
+			room: { roomId: "main", members: ["alice", "bob"], visibleEvents: [] },
+			instructions: ["Answer in French."],
+		});
+
+		const summary = observationSummary(withInstruction, log);
+
+		expect(summary.instructions).toEqual(["Answer in French."]);
+		expect(summary.redacted).toMatchObject([
+			{ targetEventId: said.id, label: 'alice: "hi"' },
+		]);
+	});
+
+	it("does not show a redaction before the step it takes effect at, nor another agent's", () => {
+		const said = history.find(
+			(e) => e.type === "message.published",
+		) as AnyEvent;
+		const log: AnyEvent[] = [
+			...history,
+			redacted("alice", said.id, 2),
+			redacted("bob", said.id, 2),
+		];
+
+		expect(observationSummary(observation("alice", 2), log).redacted).toEqual(
+			[],
+		);
+		expect(
+			observationSummary(observation("alice", 3), log).redacted,
+		).toHaveLength(1);
 	});
 
 	it("points at the prompt recorded for that agent and step, if any", () => {

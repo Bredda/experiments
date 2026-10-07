@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/item";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+	appliesAtStep,
 	EVENT_TYPES,
 	type EventFilter,
 	type EventType,
@@ -50,6 +51,12 @@ function eventLabel(event: AnyEvent) {
 
 		case "message.published":
 			return event.content ?? "Message published";
+
+		case "intervention.prompt_injected":
+			return `Instruction - ${event.agentId} - applies at step ${appliesAtStep(event)}`;
+
+		case "intervention.memory_redacted":
+			return `Redacted - ${event.agentId} - applies at step ${appliesAtStep(event)}`;
 
 		default:
 			return event.type;

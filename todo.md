@@ -63,8 +63,8 @@ Phase 3: the API (`feat(api): intervene on a run when stepping or forking`)
 
 Phase 4: ui plumbing (`refactor(ui): …`)
 
-- [ ] `lib/api.ts`: `stepRun(runId, interventions?)` and `forkRun` with interventions. `lib/run-view.ts` (pure, tested): `eventLabel` and timeline items for the two events ("applies at step N+1"), `agentSummary` counts the interventions it received, `observationSummary` also returns the instructions and, from the events, the redacted items (so the panel can show them struck through). **Verify:** `pnpm --filter ui test`, a case per function, including a redaction hidden at a step before it applies.
-- [ ] `use-run-execution`: `nextStep` and `play` accept the drafts to send with the first step only, and clear them only once the step succeeded. **Verify:** `check-types`; manual: a failing step leaves the drafts in place.
+- [x] `lib/api.ts`: `stepRun(runId, interventions?)` and `forkRun` with interventions. `lib/run-view.ts` (pure, tested): `eventLabel` and timeline items for the two events ("applies at step N+1"), `agentSummary` counts the interventions it received, `observationSummary` also returns the instructions and, from the events, the redacted items (so the panel can show them struck through). The chat marker and the `eventLabel` of the log come with it, since the timeline now has an intervention item. **Verify:** `pnpm --filter ui test`, a case per function, including a redaction hidden at a step before it applies.
+- [ ] `use-run-execution`: `nextStep` and `play` accept the drafts to send with the first step only, and clear them only once the step succeeded. `nextStep` and `play` take `{ interventions, onApplied }`; `onApplied` fires only once the step was recorded. **Verify:** `check-types`; manual: a failing step leaves the drafts in place (only checkable once phase 5 holds drafts: tick it there).
 
 Phase 5: ui feature (`feat(ui): intervene on an agent from the run page`)
 

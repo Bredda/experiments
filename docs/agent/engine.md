@@ -60,6 +60,8 @@ Actions (`packages/types/src/actions.ts`): `speak` (with `urgency`, `relevance`,
 | Scheduler | `schedulerTypeSchema` in `types/src/scenario.ts` | `scheduler/registry.ts` (`schedulers` record) |
 | Memory | `MEMORY_KINDS` in `types/src/memory.ts` | `memory/index.ts` (`registerMemory`) |
 
+Memory kinds: `sliding_window` keeps every message the agent can see and all of its own proposals; `last_n` keeps only the last `LAST_N` (5) of each. Memory is stateless: a slice is recomputed from the visible events at each step.
+
 The `llm` behavior is registered by a side effect of importing `@experiments/ai`, which the engine cannot import. `apps/api` does that import; any other entry point that must run `llm` agents has to do the same.
 
 ## Scenarios

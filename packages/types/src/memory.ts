@@ -3,7 +3,7 @@ import { actionProposedSchema, messagePublishedSchema } from "./events";
 import { roomIdSchema } from "./ids";
 import { timeSchema } from "./primitives";
 
-export const MEMORY_KINDS = ["sliding_window"] as const;
+export const MEMORY_KINDS = ["sliding_window", "last_n"] as const;
 export const memoryTypeSchema = z.enum(MEMORY_KINDS);
 export type MemoryType = (typeof MEMORY_KINDS)[number];
 

@@ -33,6 +33,7 @@ import {
 	type TimelineItem,
 } from "@/lib/run-view";
 import { cn } from "@/lib/utils";
+import { Hint } from "./hint";
 
 const timeFormat = new Intl.DateTimeFormat("en-GB", {
 	hour: "2-digit",
@@ -52,21 +53,23 @@ function ClickableMarker({
 	children: React.ReactNode;
 }) {
 	return (
-		<Marker
-			render={
-				<button
-					type="button"
-					onClick={onSelect}
-					aria-pressed={selected}
-					className={cn(
-						"rounded-md px-1 py-0.5 transition-colors hover:text-foreground",
-						selected && "bg-muted text-foreground",
-					)}
-				/>
-			}
-		>
-			{children}
-		</Marker>
+		<Hint label="Open event details">
+			<Marker
+				render={
+					<button
+						type="button"
+						onClick={onSelect}
+						aria-pressed={selected}
+						className={cn(
+							"rounded-md px-1 py-0.5 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+							selected && "bg-muted text-foreground",
+						)}
+					/>
+				}
+			>
+				{children}
+			</Marker>
+		</Hint>
 	);
 }
 
@@ -168,42 +171,48 @@ function TimelineEntry({
 			return (
 				<Message>
 					<MessageAvatar>
-						<button
-							type="button"
-							onClick={() => onSelectAgent(item.agentId)}
-							aria-label={`Show ${item.agentId}`}
-							aria-pressed={selectedAgentId === item.agentId}
-							className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50 aria-pressed:ring-2 aria-pressed:ring-primary"
-						>
-							<Avatar size="sm">
-								<AvatarFallback>{agentInitials(item.agentId)}</AvatarFallback>
-							</Avatar>
-						</button>
-					</MessageAvatar>
-					<MessageContent>
-						<MessageHeader>
+						<Hint label={`Inspect ${item.agentId}`}>
 							<button
 								type="button"
 								onClick={() => onSelectAgent(item.agentId)}
-								className="underline-offset-2 hover:text-foreground hover:underline"
+								aria-label={`Inspect ${item.agentId}`}
+								aria-pressed={selectedAgentId === item.agentId}
+								className="rounded-full outline-none hover:ring-2 hover:ring-ring/40 focus-visible:ring-2 focus-visible:ring-ring/50 aria-pressed:ring-2 aria-pressed:ring-primary"
 							>
-								{item.agentId}
+								<Avatar size="sm">
+									<AvatarFallback>{agentInitials(item.agentId)}</AvatarFallback>
+								</Avatar>
 							</button>
+						</Hint>
+					</MessageAvatar>
+					<MessageContent>
+						<MessageHeader>
+							<Hint label={`Inspect ${item.agentId}`}>
+								<button
+									type="button"
+									onClick={() => onSelectAgent(item.agentId)}
+									className="rounded-sm underline-offset-2 outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/50"
+								>
+									{item.agentId}
+								</button>
+							</Hint>
 						</MessageHeader>
 						<Bubble
 							variant={selectedEventId === item.eventId ? "tinted" : "muted"}
 						>
-							<BubbleContent
-								render={
-									<button
-										type="button"
-										onClick={() => onSelectEvent(item.eventId)}
-									/>
-								}
-								className="whitespace-pre-wrap"
-							>
-								{item.content}
-							</BubbleContent>
+							<Hint label="Open event details">
+								<BubbleContent
+									render={
+										<button
+											type="button"
+											onClick={() => onSelectEvent(item.eventId)}
+										/>
+									}
+									className="whitespace-pre-wrap rounded-[inherit] outline-none transition-opacity hover:opacity-75 focus-visible:ring-2 focus-visible:ring-ring/50"
+								>
+									{item.content}
+								</BubbleContent>
+							</Hint>
 						</Bubble>
 					</MessageContent>
 				</Message>

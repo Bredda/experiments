@@ -3,10 +3,12 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { agentInitials, type RoomSummary } from "@/lib/run-view";
 import { cn } from "@/lib/utils";
+import { Hint } from "./hint";
 
 /**
  * The card selects the room; `footer` sits under the room button rather than
- * inside it, since a button cannot hold other buttons.
+ * inside it, since a button cannot hold other buttons. With `onSelect`
+ * undefined the card is only a summary: selecting it would change nothing.
  */
 function RoomCard({
 	title,
@@ -17,7 +19,7 @@ function RoomCard({
 }: {
 	title: string;
 	selected: boolean;
-	onSelect: () => void;
+	onSelect?: () => void;
 	children: React.ReactNode;
 	footer?: React.ReactNode;
 }) {
@@ -25,18 +27,31 @@ function RoomCard({
 		<div
 			className={cn(
 				"flex w-44 shrink-0 flex-col rounded-lg border bg-card text-xs transition-colors",
-				selected && "border-primary ring-1 ring-primary",
+				selected && onSelect && "border-primary ring-1 ring-primary",
 			)}
 		>
-			<button
-				type="button"
-				onClick={onSelect}
-				aria-pressed={selected}
-				className="flex flex-col gap-1.5 rounded-lg p-3 text-left hover:bg-muted/50"
-			>
-				<span className="truncate font-medium text-sm">{title}</span>
-				{children}
-			</button>
+			{onSelect ? (
+				<Hint
+					label={
+						selected ? `Showing ${title}` : `Show only the messages of ${title}`
+					}
+				>
+					<button
+						type="button"
+						onClick={onSelect}
+						aria-pressed={selected}
+						className="flex flex-col gap-1.5 rounded-lg p-3 text-left outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50"
+					>
+						<span className="truncate font-medium text-sm">{title}</span>
+						{children}
+					</button>
+				</Hint>
+			) : (
+				<div className="flex flex-col gap-1.5 p-3">
+					<span className="truncate font-medium text-sm">{title}</span>
+					{children}
+				</div>
+			)}
 			{footer}
 		</div>
 	);
@@ -55,19 +70,19 @@ function Members({
 	return (
 		<div className="flex flex-wrap gap-1 px-3 pb-3">
 			{memberIds.map((agentId) => (
-				<button
-					key={agentId}
-					type="button"
-					onClick={() => onSelectAgent(agentId)}
-					aria-label={`Show ${agentId}`}
-					aria-pressed={selectedAgentId === agentId}
-					title={agentId}
-					className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50 aria-pressed:ring-2 aria-pressed:ring-primary"
-				>
-					<Avatar size="sm">
-						<AvatarFallback>{agentInitials(agentId)}</AvatarFallback>
-					</Avatar>
-				</button>
+				<Hint key={agentId} label={`Inspect ${agentId}`}>
+					<button
+						type="button"
+						onClick={() => onSelectAgent(agentId)}
+						aria-label={`Inspect ${agentId}`}
+						aria-pressed={selectedAgentId === agentId}
+						className="rounded-full outline-none hover:ring-2 hover:ring-ring/40 focus-visible:ring-2 focus-visible:ring-ring/50 aria-pressed:ring-2 aria-pressed:ring-primary"
+					>
+						<Avatar size="sm">
+							<AvatarFallback>{agentInitials(agentId)}</AvatarFallback>
+						</Avatar>
+					</button>
+				</Hint>
 			))}
 		</div>
 	);
@@ -91,7 +106,8 @@ function Meta({
 /**
  * Rooms of the run as selectable cards; the selection filters the timeline.
  * `selected` is a room id, or null for all rooms. The "All rooms" card only
- * appears when there are several rooms to choose between.
+ * appears when there are several rooms to choose between; with one room the
+ * card is not a button.
  */
 export function RoomStrip({
 	rooms,
@@ -126,7 +142,8 @@ export function RoomStrip({
 					key={room.roomId}
 					title={room.roomId}
 					selected={selected === room.roomId}
-					onSelect={() => onSelect(room.roomId)}
+					// With a single room there is nothing to choose between.
+					onSelect={rooms.length > 1 ? () => onSelect(room.roomId) : undefined}
 					footer={
 						<Members
 							memberIds={room.memberIds}

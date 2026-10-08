@@ -29,6 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { FieldSeparator } from "../ui/field";
+import { Hint } from "./hint";
 
 function formatTime(timestamp: string) {
 	return new Date(timestamp).toLocaleTimeString("fr-FR", {
@@ -214,32 +215,40 @@ export function RunEvents({
 								<FieldSeparator className="mb-2">Step {index}</FieldSeparator>
 								<StepMetadatas events={item} />
 								{item.map((event) => (
-									<Item
-										variant="default"
+									<Hint
 										key={`event_${event.id}`}
-										// The item's own anchor hover (bg-muted) would override a
-										// plain class, so the selected look is forced with `!`.
-										className={cn(
-											selected === event.id &&
-												"border-primary/50 bg-primary/10! hover:bg-primary/15!",
-										)}
-										render={
-											<Link
-												href="#"
-												aria-current={
-													selected === event.id ? "true" : undefined
-												}
-												onClick={(e) => handleSelected(e, event.id)}
-											>
-												<ItemContent>
-													<ItemTitle>{eventLabel(event)}</ItemTitle>
-												</ItemContent>
-												<ItemActions>
-													<HugeiconsIcon icon={ArrowRight} className="size-4" />
-												</ItemActions>
-											</Link>
-										}
-									/>
+										label="Open event details"
+										side="right"
+									>
+										<Item
+											variant="default"
+											// The item's own anchor hover (bg-muted) would override a
+											// plain class, so the selected look is forced with `!`.
+											className={cn(
+												selected === event.id &&
+													"border-primary/50 bg-primary/10! hover:bg-primary/15!",
+											)}
+											render={
+												<Link
+													href="#"
+													aria-current={
+														selected === event.id ? "true" : undefined
+													}
+													onClick={(e) => handleSelected(e, event.id)}
+												>
+													<ItemContent>
+														<ItemTitle>{eventLabel(event)}</ItemTitle>
+													</ItemContent>
+													<ItemActions>
+														<HugeiconsIcon
+															icon={ArrowRight}
+															className="size-4"
+														/>
+													</ItemActions>
+												</Link>
+											}
+										/>
+									</Hint>
 								))}
 							</div>
 						))}

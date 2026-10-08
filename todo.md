@@ -79,7 +79,7 @@ Phase 6: docs (`docs: …`)
 
 Phase 7: housekeeping found on the way (`build: …`, last task of this feature)
 
-- [ ] `turbo.json`: the `test` task does not invalidate its cache when a package it imports changes, so a green cached `pnpm test` (and the pre-push hook) can hide a failure: the ui test of `EVENT_TYPES` stayed "passed" from the cache after `packages/types` gained two event types. Make `test` depend on the tests of its workspace dependencies, or declare the packages' sources as inputs, whichever turbo documents for this. **Verify:** change a type in `packages/types` that a ui test reads and run `pnpm test` without `--force`: the ui test reruns and fails.
+- [x] `turbo.json`: the `test` task does not invalidate its cache when a package it imports changes, so a green cached `pnpm test` (and the pre-push hook) can hide a failure: the ui test of `EVENT_TYPES` stayed "passed" from the cache after `packages/types` gained two event types. Done with a transit node (`transit` depends on `^transit`, `test` depends on `transit`): no package defines `transit`, it only carries the changes of the workspace dependencies into the hash of `test`. **Verify:** change a type in `packages/types` that a ui test reads and run `pnpm test` without `--force`: the ui test reruns and fails.
 
 ### Done when
 

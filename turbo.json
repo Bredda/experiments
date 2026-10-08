@@ -13,7 +13,16 @@
 		"check-types": {
 			"dependsOn": ["^check-types"]
 		},
-		"test": {},
+		// A task without `dependsOn` is only hashed from its own package, so a
+		// change in a package it imports would replay a stale result. `transit`
+		// is a task no package defines: it carries the changes of the workspace
+		// dependencies into the hash of `test` (a Turborepo "transit node").
+		"transit": {
+			"dependsOn": ["^transit"]
+		},
+		"test": {
+			"dependsOn": ["transit"]
+		},
 		"dev": {
 			"cache": false,
 			"persistent": true

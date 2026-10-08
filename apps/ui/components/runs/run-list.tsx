@@ -5,6 +5,7 @@ import { runStatusSchema } from "@experiments/types/run";
 import { Search01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -19,6 +20,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { forkCounts, matchesRunQuery } from "@/lib/run-list";
 import { RunItem } from "./run-item";
 import { STATUS_LABELS } from "./status-badge";
 
@@ -48,19 +50,23 @@ export function RunList({ runs }: { runs: RunRecord[] }) {
 	const [search, setSearch] = useState("");
 	const [status, setStatus] = useState<StatusFilter>("all");
 	const [sort, setSort] = useState<SortKey>("newest");
+	const [showArchived, setShowArchived] = useState(false);
 
-	const visibleRuns = useMemo(() => {
-		const query = search.trim().toLowerCase();
-		return runs
-			.filter(
-				(run) =>
-					(status === "all" || run.status === status) &&
-					(!query ||
-						run.name.toLowerCase().includes(query) ||
-						run.runId.toLowerCase().includes(query)),
-			)
-			.sort(SORTERS[sort]);
-	}, [runs, search, status, sort]);
+	const forks = useMemo(() => forkCounts(runs), [runs]);
+	const archivedCount = runs.filter((run) => run.archived).length;
+	// Archived runs are out of the way unless asked for.
+	const listed = showArchived ? runs : runs.filter((run) => !run.archived);
+	const visibleRuns = useMemo(
+		() =>
+			listed
+				.filter(
+					(run) =>
+						(status === "all" || run.status === status) &&
+						matchesRunQuery(run, search),
+				)
+				.sort(SORTERS[sort]),
+		[listed, search, status, sort],
+	);
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -73,8 +79,8 @@ export function RunList({ runs }: { runs: RunRecord[] }) {
 						type="search"
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
-						placeholder="Search by name or id"
-						aria-label="Search runs by name or id"
+						placeholder="Search by name, id or notes"
+						aria-label="Search runs by name, id or notes"
 					/>
 				</InputGroup>
 				<Select
@@ -114,11 +120,23 @@ export function RunList({ runs }: { runs: RunRecord[] }) {
 				</Select>
 			</div>
 
-			<p className="text-muted-foreground text-xs">
-				{visibleRuns.length === runs.length
-					? `${runs.length} ${runs.length === 1 ? "run" : "runs"}`
-					: `${visibleRuns.length} of ${runs.length} runs`}
-			</p>
+			<div className="flex items-center justify-between gap-2">
+				<p className="text-muted-foreground text-xs">
+					{visibleRuns.length === runs.length
+						? `${runs.length} ${runs.length === 1 ? "run" : "runs"}`
+						: `${visibleRuns.length} of ${runs.length} runs`}
+				</p>
+				{archivedCount > 0 && (
+					<Button
+						variant={showArchived ? "secondary" : "ghost"}
+						size="xs"
+						aria-pressed={showArchived}
+						onClick={() => setShowArchived((shown) => !shown)}
+					>
+						{showArchived ? "Hide" : "Show"} archived ({archivedCount})
+					</Button>
+				)}
+			</div>
 
 			<ScrollArea className="min-h-0 flex-1">
 				{visibleRuns.length === 0 ? (
@@ -128,7 +146,11 @@ export function RunList({ runs }: { runs: RunRecord[] }) {
 				) : (
 					<ItemGroup className="gap-2 pr-3">
 						{visibleRuns.map((run) => (
-							<RunItem key={run.runId} run={run} />
+							<RunItem
+								key={run.runId}
+								run={run}
+								forks={forks.get(run.runId) ?? 0}
+							/>
 						))}
 					</ItemGroup>
 				)}

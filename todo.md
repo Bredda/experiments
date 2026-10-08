@@ -60,7 +60,7 @@ Work on branch `feat/run-page-polish`, one commit per phase (phase 3 and 4 have 
   **Verify:** `pnpm --filter @experiments/engine test`.
 - [x] 4d. `api`: `PATCH /runs/:id` and `DELETE /runs/:id`; `RunHasForksError` maps to 409.
   **Verify:** with `curl`: patch name, note and archived; delete a leaf (204); delete a parent (409, run intact); delete an unknown run (404); `/reference` lists both routes.
-- [ ] 4e. `ui`: per-run menu in the run list (rename and note, archive, delete), delete disabled with a reason when the run has forks, archived runs hidden behind a switch, notes shown and searchable; deleting a run closes its tab, renaming it updates the tab.
+- [x] 4e. `ui`: per-run menu in the run list (rename and note, archive, delete), delete disabled with a reason when the run has forks, archived runs hidden behind a switch, notes shown and searchable; deleting a run closes its tab, renaming it updates the tab.
   **Verify:** `pnpm --filter ui test` (fork counts); by hand: rename shows in the control bar and the fork tree, archive and unarchive, delete a leaf, a parent with forks cannot be deleted.
 
 ### Phase 5: documentation and closing

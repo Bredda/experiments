@@ -7,6 +7,7 @@ import type {
 	ForkTree,
 	RunRecord,
 	StepResult,
+	UpdateRunRequest,
 } from "@experiments/types/run";
 import type { ScenarioConfig } from "@experiments/types/scenario";
 import { apiFetch } from "./fetch";
@@ -80,4 +81,20 @@ export async function getForkTree(runId: string): Promise<ForkTree> {
 	return await apiFetch<ForkTree>(`runs/${runId}/tree`, {
 		cache: "no-store",
 	});
+}
+
+/** Renames a run, changes its notes or archives it. */
+export async function updateRun(
+	runId: string,
+	patch: UpdateRunRequest,
+): Promise<RunRecord> {
+	return await apiFetch<RunRecord>(`runs/${runId}`, {
+		method: "PATCH",
+		body: JSON.stringify(patch),
+	});
+}
+
+/** Deletes a run; the api refuses (409) while it has forks. */
+export async function deleteRun(runId: string): Promise<void> {
+	await apiFetch<null>(`runs/${runId}`, { method: "DELETE" });
 }

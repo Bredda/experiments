@@ -31,7 +31,7 @@ Work on branch `feat/run-page-polish`, one commit per phase (phase 3 and 4 have 
 
 ### Phase 1: startup logs
 
-- [ ] Remove the `console.log` calls of `apps/api/src/paths.ts` and `plugins/cors.ts`; log the database path from the store plugin with `app.log`.
+- [x] Remove the `console.log` calls of `apps/api/src/paths.ts` and `plugins/cors.ts`; log the database path from the store plugin with `app.log`.
   **Verify:** `grep -rn console.log apps/api/src` finds nothing; `pnpm dev` shows the database path through pino.
 
 ### Phase 2: api address at runtime (`fix(ui)`)

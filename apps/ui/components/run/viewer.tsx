@@ -125,6 +125,10 @@ export function RunViewer({
 						rooms={rooms}
 						selected={roomFilter}
 						onSelect={setRoomFilter}
+						selectedAgentId={
+							shownSelection?.type === "agent" ? shownSelection.id : null
+						}
+						onSelectAgent={(id) => setSelection({ type: "agent", id })}
 					/>
 					<div className="min-h-0 flex-1 overflow-hidden rounded-lg border">
 						<Chat

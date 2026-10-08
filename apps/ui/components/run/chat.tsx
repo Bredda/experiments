@@ -27,7 +27,11 @@ import {
 	MessageScrollerProvider,
 	MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
-import { buildTimeline, type TimelineItem } from "@/lib/run-view";
+import {
+	agentInitials,
+	buildTimeline,
+	type TimelineItem,
+} from "@/lib/run-view";
 import { cn } from "@/lib/utils";
 
 const timeFormat = new Intl.DateTimeFormat("en-GB", {
@@ -36,10 +40,6 @@ const timeFormat = new Intl.DateTimeFormat("en-GB", {
 	second: "2-digit",
 	timeZone: "UTC",
 });
-
-function initials(name: string) {
-	return name.slice(0, 2).toUpperCase();
-}
 
 /** A marker that opens the event it comes from. */
 function ClickableMarker({
@@ -176,7 +176,7 @@ function TimelineEntry({
 							className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50 aria-pressed:ring-2 aria-pressed:ring-primary"
 						>
 							<Avatar size="sm">
-								<AvatarFallback>{initials(item.agentId)}</AvatarFallback>
+								<AvatarFallback>{agentInitials(item.agentId)}</AvatarFallback>
 							</Avatar>
 						</button>
 					</MessageAvatar>

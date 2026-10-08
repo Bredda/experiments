@@ -133,6 +133,11 @@ export function interventionLabel(
 	}
 }
 
+/** Two letters to stand for an agent in an avatar. */
+export function agentInitials(agentId: string): string {
+	return agentId.slice(0, 2).toUpperCase();
+}
+
 export type RoomSummary = {
 	roomId: string;
 	memberIds: string[];

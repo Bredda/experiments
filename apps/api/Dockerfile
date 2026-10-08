@@ -3,20 +3,38 @@
 # Build from the repository root:
 #   docker build -f apps/api/Dockerfile -t experiments-api .
 
-FROM node:24-slim AS base
+FROM node:24-alpine AS base
 WORKDIR /app
 # pnpm comes from "packageManager" in package.json.
 COPY package.json ./
 RUN corepack enable && corepack install
 
 # Production dependencies of the api and of the workspace packages it uses.
-# Scripts are skipped: the root "prepare" script installs git hooks (husky).
+# Only the manifests are copied first, so this layer is rebuilt when the
+# dependencies change and not on every source change. The manifests of the
+# packages the api does not use are still needed: the frozen lockfile is
+# checked against every workspace package. Scripts are skipped: the root
+# "prepare" script installs git hooks (husky).
 FROM base AS deps
-COPY . .
+COPY pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/api/package.json apps/api/
+COPY apps/ui/package.json apps/ui/
+COPY packages/ai/package.json packages/ai/
+COPY packages/biome-config/package.json packages/biome-config/
+COPY packages/db/package.json packages/db/
+COPY packages/engine/package.json packages/engine/
+COPY packages/settings/package.json packages/settings/
+COPY packages/types/package.json packages/types/
+COPY packages/typescript-config/package.json packages/typescript-config/
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prod --ignore-scripts --filter "api..."
+# The sources go on top of the installed node_modules.
+COPY apps/api apps/api
+COPY packages packages
 
-FROM base AS runtime
+# Not built from `base`: pnpm and its cache are not needed to run the api.
+FROM node:24-alpine AS runtime
+WORKDIR /app
 ENV NODE_ENV=production \
     ENV=production \
     API_HOST=0.0.0.0 \

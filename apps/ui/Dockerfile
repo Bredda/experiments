@@ -7,24 +7,38 @@
 # build time, so an image is only right for the address it was built with.
 # Server-side rendering uses the runtime variable API_URL instead.
 
-FROM node:24-slim AS base
+FROM node:24-alpine AS base
 WORKDIR /app
 # pnpm comes from "packageManager" in package.json.
 COPY package.json ./
 RUN corepack enable && corepack install
 
+# Only the manifests are copied before the install, so that layer is rebuilt
+# when the dependencies change and not on every source change. All the
+# workspace manifests are needed: the frozen lockfile is checked against every
+# workspace package. Scripts are skipped: the root "prepare" script installs
+# git hooks (husky).
 FROM base AS build
-COPY . .
-# Scripts are skipped: the root "prepare" script installs git hooks (husky).
+COPY pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/api/package.json apps/api/
+COPY apps/ui/package.json apps/ui/
+COPY packages/ai/package.json packages/ai/
+COPY packages/biome-config/package.json packages/biome-config/
+COPY packages/db/package.json packages/db/
+COPY packages/engine/package.json packages/engine/
+COPY packages/settings/package.json packages/settings/
+COPY packages/types/package.json packages/types/
+COPY packages/typescript-config/package.json packages/typescript-config/
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts --filter "ui..."
+COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:8080
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_TELEMETRY_DISABLED=1
 # Fonts are fetched from Google at build time (next/font).
 RUN pnpm --filter ui build
 
-FROM node:24-slim AS runtime
+FROM node:24-alpine AS runtime
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \

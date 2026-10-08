@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ForkSheet } from "./fork-sheet";
 import { Hint } from "./hint";
+import { Legend } from "./legend";
 import { RunState } from "./run-state";
 
 export function ControlBar({
@@ -169,15 +170,21 @@ export function ControlBar({
 					interventions={drafts}
 					interventionLabels={draftLabels}
 				/>
-				<Button
-					variant={inspectorOpen ? "secondary" : "ghost"}
-					size="icon-sm"
-					onClick={onToggleInspector}
-					aria-label={inspectorOpen ? "Hide inspector" : "Show inspector"}
-					aria-pressed={inspectorOpen}
+				<Legend />
+				<Hint
+					label={inspectorOpen ? "Hide inspector" : "Show inspector"}
+					side="bottom"
 				>
-					<HugeiconsIcon icon={PanelRightIcon} />
-				</Button>
+					<Button
+						variant={inspectorOpen ? "secondary" : "ghost"}
+						size="icon-sm"
+						onClick={onToggleInspector}
+						aria-label={inspectorOpen ? "Hide inspector" : "Show inspector"}
+						aria-pressed={inspectorOpen}
+					>
+						<HugeiconsIcon icon={PanelRightIcon} />
+					</Button>
+				</Hint>
 			</div>
 		</div>
 	);

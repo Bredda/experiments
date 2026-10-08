@@ -47,7 +47,7 @@ Work on branch `feat/run-page-polish`, one commit per phase (phase 3 and 4 have 
   **Verify:** `pnpm --filter ui test` (`agentsOverview`); by hand: empty state, click an agent, close, reopen from the bar, move the cursor back with an event selected.
 - [x] 3b. Hover and focus affordances with `Tooltip` (a small `Hint` wrapper) on everything clickable; with a single room the room card is not a button.
   **Verify:** by hand: tooltip on hover and on keyboard focus for each kind of clickable element; the single room card has no hover and no `aria-pressed`.
-- [ ] 3c. A "?" button in the control bar opens a legend of the page, with a "new" dot until it was opened once (`localStorage`, always in try/catch).
+- [x] 3c. A "?" button in the control bar opens a legend of the page, with a "new" dot until it was opened once (`localStorage`, always in try/catch).
   **Verify:** `pnpm --filter ui test` (`lib/hints.ts`); by hand: dot on first load, gone after opening and after a reload; blocked storage leaves the page working.
 - [ ] 3d. On hover or focus: a step separator offers "Go to step N" and "Fork here", a message offers "Inspect <agent>" and "Redact from…". The fork sheet becomes controllable; the redaction adds a draft intervention.
   **Verify:** `pnpm --filter ui test` (`messageRedactionTargets`); by hand: both step actions move every panel / open the fork sheet at that step; a redaction shows in the drafts tray, goes with the next step and disappears from the agent's observation; on a completed run the actions are disabled and say why.

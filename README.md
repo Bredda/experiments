@@ -36,7 +36,7 @@ The ui is on http://localhost:3000 and the api on http://localhost:8080. Runs ar
 
 `NEXT_PUBLIC_API_URL` is inlined into the ui when it is built, so a ui image only suits the address it was built for. To serve the app elsewhere, build with `--build-arg NEXT_PUBLIC_API_URL=https://your-api`.
 
-Images are built from the repository root: `docker build -f apps/api/Dockerfile .` and `docker build -f apps/ui/Dockerfile .`.
+Images are built from the repository root: `docker build -f apps/api/Dockerfile .` and `docker build -f apps/ui/Dockerfile .`, or both at once with `docker buildx bake -f docker-bake.hcl`.
 
 ## Repository
 

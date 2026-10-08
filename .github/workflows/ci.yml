@@ -8,7 +8,9 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # A newer push to a pull request makes the older run useless. On main, every
+  # commit keeps its own result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -66,7 +68,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           if git diff --name-only "origin/${BASE_REF}...HEAD" \
-            | grep -qE '^(apps/|packages/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|\.dockerignore$|\.github/workflows/ci\.yml$)'; then
+            | grep -qE '^(apps/|packages/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|\.npmrc$|\.dockerignore$|docker-bake\.hcl$|\.github/workflows/ci\.yml$)'; then
             echo "affected=true" >> "$GITHUB_OUTPUT"
           else
             echo "affected=false" >> "$GITHUB_OUTPUT"
@@ -76,22 +78,17 @@ jobs:
       - if: steps.changes.outputs.affected == 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: Build api image
+      # Both images in one build, in parallel (docker-bake.hcl). The install
+      # layers are reused from the cache while the lockfile is unchanged.
+      - name: Build the api and ui images
         if: steps.changes.outputs.affected == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/bake-action@v6
         with:
-          context: .
-          file: apps/api/Dockerfile
+          files: docker-bake.hcl
+          source: .
           push: false
-          cache-from: type=gha,scope=api
-          cache-to: type=gha,mode=max,scope=api
-
-      - name: Build ui image
-        if: steps.changes.outputs.affected == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/ui/Dockerfile
-          push: false
-          cache-from: type=gha,scope=ui
-          cache-to: type=gha,mode=max,scope=ui
+          set: |
+            api.cache-from=type=gha,scope=api
+            api.cache-to=type=gha,mode=max,scope=api
+            ui.cache-from=type=gha,scope=ui
+            ui.cache-to=type=gha,mode=max,scope=ui

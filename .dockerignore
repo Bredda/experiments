@@ -8,10 +8,11 @@
 .husky
 .claude
 .vscode
-.env
-.env.*
+**/.env
+**/.env.*
+**/*.tsbuildinfo
 runs
 *.db
 *.db-journal
 docs
-*.md
+**/*.md

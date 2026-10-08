@@ -7,7 +7,7 @@ Code: `packages/engine/src`, schemas in `packages/types/src`, persistence in `pa
 ```text
 POST /runs body ──scenarioConfigSchema.parse──▶ ScenarioConfig
 createRun:  buildRun ─▶ store.createRun ─▶ simulation.setup()          (agents join)
-stepRun:    loadSimulation(store, runId) ─▶ simulation.step() ─▶ status update
+stepRun:    loadSimulation(store, runId) ─▶ buildInterventionEvents ─▶ simulation.step(interventions) ─▶ status update
 ```
 
 `createRun` (`scenario/runner.ts`) persists the run and runs `setup()`; it does not step. `stepRun(store, runId)` advances one step and returns the updated run plus only the events that step added. It keeps no state between calls: `loadSimulation` rebuilds the simulation from the stored scenario and events (`Simulation.restore` re-joins agents, refills the event log, seeks the clock). Typed errors (`RunNotFoundError`, `RunCompletedError`, `RunBusyError`) are exported for adapters to map to HTTP codes. The engine currently supports exactly one room per scenario even though the schema allows several.
@@ -16,7 +16,7 @@ Run status is `created | running | completed` (`runStatusSchema`). `stepRun` set
 
 ## Forks
 
-`forkRun(store, runId, { step, name, purpose })` creates a run that starts with a **copy** of the parent's events up to `step` (inclusive; 0 keeps only the `agent.joined` arrivals), with the parent's scenario (renamed) and seed. Payloads are copied as they are, event ids included, so within one run ids stay unique and across runs the shared prefix is recognizable. The fork's status follows its step (`created` at 0, `completed` at `scenario.steps`, else `running`) and from there it is stepped like any run: `loadSimulation`, observations and export need no special case. A step outside 0..latest played step throws `StepNotFoundError`. The parent is never modified.
+`forkRun(store, runId, { step, name, purpose, interventions? })` creates a run that starts with a **copy** of the parent's events up to `step` (inclusive; 0 keeps only the `agent.joined` arrivals), with the parent's scenario (renamed) and seed. Payloads are copied as they are, event ids included, so within one run ids stay unique and across runs the shared prefix is recognizable. The fork's status follows its step (`created` at 0, `completed` at `scenario.steps`, else `running`) and from there it is stepped like any run: `loadSimulation`, observations and export need no special case. A step outside 0..latest played step throws `StepNotFoundError`. The parent is never modified. With `interventions`, they are validated against the parent's history up to `step` and recorded in the fork right after the copy, in the same transaction (`RunStore.createFork` takes the extra `events`); they take effect at `step + 1`. Forking at the last step with interventions throws `InvalidInterventionError`, since there is no step left to apply them to. Because a fork copies the parent's events up to `step`, it also inherits the interventions its parent had recorded there; they are indistinguishable from the fork's own ones in the log (see the backlog).
 
 Reproducibility of a fork: its history up to `step` is copied, not recomputed, so a fork is reproducible from scenario + seed + lineage. With deterministic agents it continues exactly like its parent (covered in `fork.test.ts`); with LLM agents it is a new sample from `step` on.
 
@@ -24,10 +24,10 @@ Reproducibility of a fork: its history up to `step` is copied, not recomputed, s
 
 ## Simulation.step()
 
-`step()` is async because agents may call out to an LLM, and it is **atomic**: all events are persisted in one transaction at the end, and if any agent throws nothing is recorded and the clock is rewound.
+`step(interventions?)` is async because agents may call out to an LLM, and it is **atomic**: all events, interventions first, are persisted in one transaction at the end, and if any agent throws nothing is recorded and the clock is rewound.
 
 1. `clock.advance()`. Always, even if nothing happens afterwards.
-2. All agents observe the history as of the start of the step (never each other's same-step proposals) and their `propose` calls run concurrently (`Promise.allSettled`). Calls already in flight are not cancelled when one fails: the step waits for all of them, throws the first failure in agent order, and records nothing. Events are then built in agent order, so the log does not depend on which call finished first.
+2. All agents observe the history as of the start of the step (never each other's same-step proposals), plus the interventions this step was given (see [Interventions](#interventions)) and their `propose` calls run concurrently (`Promise.allSettled`). Calls already in flight are not cancelled when one fails: the step waits for all of them, throws the first failure in agent order, and records nothing. Events are then built in agent order, so the log does not depend on which call finished first.
 3. If the proposal carries a `prompt`, emit `agent.prompt_built`. Always emit `action.proposed`.
 4. Only `speak` proposals become scheduler candidates. `stay_silent` is recorded but never selected.
 5. If there are candidates, `scheduler.select(candidates, rng)` picks one, then `action.selected` and `message.published` are emitted.
@@ -47,8 +47,22 @@ All events share `id`, `timestamp` (simulation time, ISO), `step`, and a literal
 | `action.proposed` | every agent, every step |
 | `action.selected` | the scheduler picks a candidate |
 | `message.published` | the selected action is `speak` |
+| `intervention.prompt_injected` | the experimenter gives an `llm` agent a system instruction for the next step (`agentId`, `content`) |
+| `intervention.memory_redacted` | the experimenter removes an event from one agent's view from the next step on (`agentId`, `targetEventId`) |
 
 Every event is persisted to the `RunStore`.
+
+## Interventions
+
+An intervention is something the experimenter does to a run, recorded as an event so the run stays replayable and comparable. Two exist: a **system instruction** for one agent for one step, and the **redaction** of a message or of the agent's own proposal from that agent's view. Their request shapes (`interventionSchema`, discriminated by `type`) are in `packages/types/src/interventions.ts`; the recorded event is the same body plus `id`, `timestamp` and `step` (`events.ts`), so a request and the fact it becomes share one definition. Adding a type means a new member there, an event, and a reader in `packages/engine/src/interventions.ts`; nothing existing changes.
+
+- **Recorded between steps.** An intervention recorded at step N has `step: N` and the timestamp of step N, and takes effect from step N + 1: an instruction at N + 1 only, a redaction from N + 1 on. It is stored after step N's events, so `restore`, the clock and the played-step bound are not moved by it. `observationsAt(s)` (history with `step < s`) therefore includes exactly what was in effect at `s`, and never an intervention recorded at `s` itself.
+- **Applied atomically.** `stepRun(store, runId, { interventions })` validates them against the run, builds the events (`buildInterventionEvents`) and passes them to `Simulation.step`, which makes them part of the history the agents observe and commits them with the step's events: if a step fails, no intervention is recorded either. `forkRun(..., { interventions })` records them in the fork instead (see Forks). There is no server-side pending state: the ui keeps drafts and sends them with the step or the fork.
+- **Validation** (`InvalidInterventionError`, 400 over HTTP): the agent exists; an instruction needs an `llm` agent (like `persona`, it is rejected on the other behaviors); a redaction target must be a `message.published`, or an `action.proposed` of that same agent, recorded at or before step N, and not already redacted for that agent; and there must be a next step, so interventions on a completed run are rejected.
+- **What the agent sees.** Agents never see interventions as events: `Room.view` drops every `intervention.*` event and, for the observing agent, the events its redactions target. A redaction thus changes what the agent perceives, and memory inherits that, whatever its kind (memory stays stateless). A system instruction reaches the agent as `Observation.instructions` (those recorded at `observation.step - 1` for that agent), and `LLMAgent` appends them to the single system message in an `<instructions>` block, so they appear in the `agent.prompt_built` event of that step.
+- **Reproducibility.** Interventions are part of the scenario's trajectory: the same scenario, seed and interventions give the same events (a redaction's `targetEventId` is an execution-specific id, like every event id, so compare behavior without ids).
+
+Not built yet: inserting a memory that never existed, multimodal content, and interventions scripted in the scenario (`roadmap.md`, axis 4).
 
 Actions (`packages/types/src/actions.ts`): `speak` (with `urgency`, `relevance`, `socialCost`) and `stay_silent`, discriminated by `type`. An `ActionProposal` wraps an action with `confidence` and an optional `prompt`.
 

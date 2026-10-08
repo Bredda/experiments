@@ -56,7 +56,7 @@ Work on branch `feat/run-page-polish`, one commit per phase (phase 3 and 4 have 
 
 - [x] 4a. `types`: `notes` and `archived` on `RunRecord`, `updateRunRequestSchema`.
 - [x] 4b. `db`: table `run_meta`, `updateRun`, `countForks`; the run queries read the new fields.
-- [ ] 4c. `engine`: `RunHasForksError`, use cases `updateRun` and `deleteRun` (not found, busy, has forks), with tests in the style of `fork.test.ts`, including a database created before `run_meta`.
+- [x] 4c. `engine`: `RunHasForksError`, use cases `updateRun` and `deleteRun` (not found, busy, has forks), with tests in the style of `fork.test.ts`, including a database created before `run_meta`.
   **Verify:** `pnpm --filter @experiments/engine test`.
 - [ ] 4d. `api`: `PATCH /runs/:id` and `DELETE /runs/:id`; `RunHasForksError` maps to 409.
   **Verify:** with `curl`: patch name, note and archived; delete a leaf (204); delete a parent (409, run intact); delete an unknown run (404); `/reference` lists both routes.

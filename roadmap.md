@@ -32,12 +32,12 @@ Where the MVP stands: define, run, inspect, navigate and fork a run work: a run 
 | 1 | Run lifecycle | Done | Stepping, autoplay and concurrent agents work; streaming inside a step is on hold |
 | 2 | Inspection and replay | Done | Time cursor, per-agent observation at any step, event filters by agent and type |
 | 3 | Agents and memory | Done | Persona and model per agent, two memory kinds, model call recorded next to the prompt, `llm` prompt tested offline |
-| 4 | Interventions | Later | Not started |
+| 4 | Interventions | Now (first slice done), then Later | System instruction for one step and memory redaction, live or in a fork; insertion, multimodal and scripted interventions left |
 | 5 | Environment | Later | Single room; the engine rejects several |
 | 6 | Scheduling | Later | Two baseline policies, one speaker per step |
 | 7 | Measurement and comparison | Now (7.2), then Later | 7.1 done, rest not started |
 
-Suggested order: 7.2 (closes the MVP loop; 7.1 is done; axis 3 is done and supplies the parameters to vary), then 4, 5 and 6. Axis 4 benefits from 3 (memory) and from the fork described there. Axis 6 depends on 5 as soon as scheduling becomes per room. 7.3 and 7.4 are pulled in when an experiment needs them.
+Suggested order: 7.2 (closes the MVP loop; 7.1 is done; axis 3 is done and supplies the parameters to vary), then the rest of 4 (its first slice was done ahead of 7.2), 5 and 6. Axis 4 benefits from 3 (memory) and from the fork described there. Axis 6 depends on 5 as soon as scheduling becomes per room. 7.3 and 7.4 are pulled in when an experiment needs them.
 
 ## 1. Run lifecycle
 
@@ -78,7 +78,11 @@ Two consequences of the current design:
 - A live intervention can only affect the next step. Intervening at a past step means forking: a new run built from the events up to step N, then diverging. That building block exists since 7.1 (`forkRun`, with the fork tree recorded); what is left is the divergence itself, interventions and changed parameters applied from step N.
 - Memory has no state to edit. Editing or removing memory is expressed as an intervention event that the visibility and memory code honors when building a view (for instance a redaction), not as a mutation. Each new intervention is a new event type.
 
-**Done when:** an experimenter can alter what a chosen agent perceives or remembers at a chosen step, and the effect is visible and attributable in the trajectory.
+First slice, done: two interventions, each its own event type (`intervention.prompt_injected`, `intervention.memory_redacted`). An experimenter gives an `llm` agent a system instruction for one step, or removes a message or one of its own proposals from an agent's view, from the run page (the agent's Intervene tab); applied live they are recorded with the next step, applied from a past step they go with a fork. They are recorded between steps (at the step they follow, effective from the next one), validated by the engine, shown in the log, the chat and the agent's observation, and the same scenario, seed and interventions replay identically. See [docs/agent/engine.md](docs/agent/engine.md).
+
+Left over: inserting a memory that never existed (a new event type that the memory code renders), multimodal content (the intervention content is a plain string today, so a new type or a parts-based content is an addition), interventions scripted in the scenario (the events would be the same), changed parameters in a fork (backlog), and telling a fork's own interventions from the ones it inherited (backlog).
+
+**Done when:** an experimenter can alter what a chosen agent perceives or remembers at a chosen step, and the effect is visible and attributable in the trajectory. Reached for system instructions and redaction; the rest of the examples above remain.
 
 ## 5. Environment
 

@@ -56,6 +56,7 @@ Events are immutable facts with `id`, simulation `timestamp`, `step`, and an exp
 
 ```text
 agent.joined   agent.prompt_built   action.proposed   action.selected   message.published
+intervention.prompt_injected   intervention.memory_redacted
 ```
 
 Actions are discriminated by `type` too: `speak` (with `urgency`, `relevance`, `socialCost`) and `stay_silent`. An `ActionProposal` wraps an action with a `confidence` and an optional prompt. Types are never inferred from payload shape.
@@ -108,7 +109,8 @@ POST /runs              create a run from a scenario
 GET  /runs/:id
 GET  /runs/:id/events
 GET  /runs/:id/steps/:step/observations   what each agent observed at that step
-POST /runs/:id/steps/next   advance one step; 409 if completed or busy
+POST /runs/:id/steps/next   advance one step, optionally with interventions; 400 if one cannot be applied, 409 if completed or busy
+POST /runs/:id/fork         fork a run at a step, optionally with interventions
 GET  /healthz/{health,live,ready}
 ```
 

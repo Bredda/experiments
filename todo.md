@@ -75,7 +75,7 @@ Phase 5: ui feature (`feat(ui): intervene on an agent from the run page`)
 
 Phase 6: docs (`docs: …`)
 
-- [ ] `docs/agent/engine.md` (event table, D4 semantics, `Room.view` and `Observation.instructions`, `stepRun` and `forkRun` options), `docs/agent/api-ui.md` (routes, drafts and tray, intervene tab), `roadmap.md` axis 4 (status, what is left: insertion, multimodal, scripted interventions in the scenario) and the `add-event-type` skill if its checklist missed something. **Verify:** `pnpm lint`, `pnpm check-types`, `pnpm test`.
+- [x] `docs/agent/engine.md` (event table, D4 semantics, `Room.view` and `Observation.instructions`, `stepRun` and `forkRun` options), `docs/agent/api-ui.md` (routes, drafts and tray, intervene tab), `roadmap.md` axis 4 (status, what is left: insertion, multimodal, scripted interventions in the scenario) and the `add-event-type` skill if its checklist missed something. **Verify:** `pnpm lint`, `pnpm check-types`, `pnpm test`.
 
 Phase 7: housekeeping found on the way (`build: …`, last task of this feature)
 

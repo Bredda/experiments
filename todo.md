@@ -58,7 +58,7 @@ Work on branch `feat/run-page-polish`, one commit per phase (phase 3 and 4 have 
 - [x] 4b. `db`: table `run_meta`, `updateRun`, `countForks`; the run queries read the new fields.
 - [x] 4c. `engine`: `RunHasForksError`, use cases `updateRun` and `deleteRun` (not found, busy, has forks), with tests in the style of `fork.test.ts`, including a database created before `run_meta`.
   **Verify:** `pnpm --filter @experiments/engine test`.
-- [ ] 4d. `api`: `PATCH /runs/:id` and `DELETE /runs/:id`; `RunHasForksError` maps to 409.
+- [x] 4d. `api`: `PATCH /runs/:id` and `DELETE /runs/:id`; `RunHasForksError` maps to 409.
   **Verify:** with `curl`: patch name, note and archived; delete a leaf (204); delete a parent (409, run intact); delete an unknown run (404); `/reference` lists both routes.
 - [ ] 4e. `ui`: per-run menu in the run list (rename and note, archive, delete), delete disabled with a reason when the run has forks, archived runs hidden behind a switch, notes shown and searchable; deleting a run closes its tab, renaming it updates the tab.
   **Verify:** `pnpm --filter ui test` (fork counts); by hand: rename shows in the control bar and the fork tree, archive and unarchive, delete a leaf, a parent with forks cannot be deleted.

@@ -2,6 +2,7 @@ import {
 	InvalidInterventionError,
 	RunBusyError,
 	RunCompletedError,
+	RunHasForksError,
 	RunNotFoundError,
 	StepNotFoundError,
 } from "@experiments/engine";
@@ -15,7 +16,11 @@ function statusFor(err: FastifyError): number {
 	if (err instanceof ZodError || err instanceof InvalidInterventionError) {
 		return 400;
 	}
-	if (err instanceof RunCompletedError || err instanceof RunBusyError) {
+	if (
+		err instanceof RunCompletedError ||
+		err instanceof RunBusyError ||
+		err instanceof RunHasForksError
+	) {
 		return 409;
 	}
 	return err.statusCode ?? 500;

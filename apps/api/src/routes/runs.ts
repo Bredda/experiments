@@ -1,9 +1,11 @@
 import {
 	createRun,
+	deleteRun,
 	forkRun,
 	getForkTree,
 	getObservations,
 	stepRun,
+	updateRun,
 } from "@experiments/engine";
 import { observationSchema } from "@experiments/types";
 import { runIdSchema } from "@experiments/types/ids";
@@ -14,6 +16,7 @@ import {
 	runRecordSchema,
 	stepRequestSchema,
 	stepResultSchema,
+	updateRunRequestSchema,
 } from "@experiments/types/run";
 import { scenarioConfigSchema } from "@experiments/types/scenario";
 import type { FastifyPluginAsync } from "fastify";
@@ -87,6 +90,56 @@ const runsRoutes: FastifyPluginAsync = async (app) => {
 				throw app.httpErrors.notFound(`Run ${request.params.id} not found`);
 			}
 			return reply.code(200).send(run);
+		},
+	);
+
+	app.patch<{ Params: { id: string }; Body: unknown }>(
+		"/:id",
+		{
+			schema: {
+				description:
+					"Rename a run, change its notes or archive it. Only the fields present change, and at least one must be. The name is also the name of the run's scenario. Nothing about the simulation changes: events, seed and status stay as they are. 404 if the run does not exist.",
+				tags: ["runs"],
+				params: idParams,
+				body: updateRunRequestSchema.toJSONSchema({
+					target: "draft-7",
+					io: "input",
+				}),
+				response: {
+					200: runRecordSchema.toJSONSchema(),
+					400: errorResponse,
+					404: errorResponse,
+				},
+			},
+		},
+		async (request, reply) => {
+			const run = updateRun(
+				app.store,
+				runIdSchema.parse(request.params.id),
+				updateRunRequestSchema.parse(request.body),
+			);
+			return reply.code(200).send(run);
+		},
+	);
+
+	app.delete<{ Params: { id: string } }>(
+		"/:id",
+		{
+			schema: {
+				description:
+					"Delete a run and its events. 409 while the run executes a step, and while other runs were forked from it (delete the forks first, or archive the run with PATCH). 404 if the run does not exist.",
+				tags: ["runs"],
+				params: idParams,
+				response: {
+					204: { type: "null" },
+					404: errorResponse,
+					409: errorResponse,
+				},
+			},
+		},
+		async (request, reply) => {
+			deleteRun(app.store, runIdSchema.parse(request.params.id));
+			return reply.code(204).send();
 		},
 	);
 

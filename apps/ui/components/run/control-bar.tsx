@@ -30,6 +30,8 @@ export function ControlBar({
 	pausing,
 	eventsOpen,
 	onToggleEvents,
+	forkOpen,
+	onForkOpenChange,
 	inspectorOpen,
 	onToggleInspector,
 	onNextStep,
@@ -52,6 +54,8 @@ export function ControlBar({
 	pausing: boolean;
 	eventsOpen: boolean;
 	onToggleEvents: () => void;
+	forkOpen: boolean;
+	onForkOpenChange: (open: boolean) => void;
 	inspectorOpen: boolean;
 	onToggleInspector: () => void;
 	onNextStep: () => void;
@@ -167,6 +171,8 @@ export function ControlBar({
 				<ForkSheet
 					runId={run.runId}
 					step={step}
+					open={forkOpen}
+					onOpenChange={onForkOpenChange}
 					interventions={drafts}
 					interventionLabels={draftLabels}
 				/>

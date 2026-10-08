@@ -25,6 +25,7 @@ import {
 	interventionLabel,
 	interventionTarget,
 	lastStep,
+	messageRedactionTargets,
 	modelCallLabel,
 	NO_FILTER,
 	observationSummary,
@@ -803,5 +804,40 @@ describe("modelCallLabel", () => {
 
 	it("has nothing to show for a prompt recorded without a model call", () => {
 		expect(modelCallLabel(prompt("alice", 1))).toBeUndefined();
+	});
+});
+
+describe("messageRedactionTargets", () => {
+	const message = published("alice", "main", 1);
+	const other = joined("carol", "other");
+	const events: AnyEvent[] = [
+		joined("alice", "main"),
+		joined("bob", "main"),
+		other,
+		message,
+	];
+
+	it("lists the members of the room of the message", () => {
+		expect(messageRedactionTargets(events, message.id)).toEqual([
+			{ agentId: "alice", redacted: false },
+			{ agentId: "bob", redacted: false },
+		]);
+	});
+
+	it("marks the agents it was already redacted from", () => {
+		expect(
+			messageRedactionTargets(
+				[...events, redacted("bob", message.id, 1)],
+				message.id,
+			),
+		).toEqual([
+			{ agentId: "alice", redacted: false },
+			{ agentId: "bob", redacted: true },
+		]);
+	});
+
+	it("is empty for something that is not a message", () => {
+		expect(messageRedactionTargets(events, other.id)).toEqual([]);
+		expect(messageRedactionTargets(events, "missing")).toEqual([]);
 	});
 });

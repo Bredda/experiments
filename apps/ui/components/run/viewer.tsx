@@ -35,6 +35,7 @@ export function RunViewer({
 	const [eventsOpen, setEventsOpen] = useState(true);
 	// The inspector stays open without a selection, to say what can be selected.
 	const [inspectorOpen, setInspectorOpen] = useState(true);
+	const [forkOpen, setForkOpen] = useState(false);
 	// null means all rooms. A run with a single room has no "All rooms" card,
 	// so that room is the filter from the start.
 	const [roomFilter, setRoomFilter] = useState<string | null>(
@@ -69,6 +70,9 @@ export function RunViewer({
 		() => roomSummaries(run, shownEvents),
 		[run, shownEvents],
 	);
+	// Reaching the latest step means following the run again.
+	const goToStep = (next: number) =>
+		setCursor(next >= latestStep ? null : Math.max(next, 0));
 	const select = (next: RunSelection) => {
 		setSelection(next);
 		setInspectorOpen(true);
@@ -91,10 +95,7 @@ export function RunViewer({
 				step={step}
 				latestStep={latestStep}
 				live={live}
-				// Reaching the latest step means following the run again.
-				onCursor={(next) =>
-					setCursor(next >= latestStep ? null : Math.max(next, 0))
-				}
+				onCursor={goToStep}
 				onLive={() => setCursor(null)}
 				pending={pending}
 				playing={playing}
@@ -103,6 +104,8 @@ export function RunViewer({
 				onPause={pause}
 				eventsOpen={eventsOpen}
 				onToggleEvents={() => setEventsOpen((open) => !open)}
+				forkOpen={forkOpen}
+				onForkOpenChange={setForkOpen}
 				inspectorOpen={inspectorOpen}
 				onToggleInspector={() =>
 					inspectorOpen ? closeInspector() : setInspectorOpen(true)
@@ -156,6 +159,12 @@ export function RunViewer({
 							}
 							onSelectEvent={(id) => select({ type: "event", id })}
 							onSelectAgent={(id) => select({ type: "agent", id })}
+							onGoToStep={goToStep}
+							onForkAt={(next) => {
+								goToStep(next);
+								setForkOpen(true);
+							}}
+							intervene={{ target, drafts, onAdd: add, onRemove: remove }}
 						/>
 					</div>
 				</section>

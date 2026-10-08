@@ -36,9 +36,9 @@ Work on branch `feat/run-page-polish`, one commit per phase (phase 3 and 4 have 
 
 ### Phase 2: api address at runtime (`fix(ui)`)
 
-- [ ] `apps/ui/lib/proxy.ts` (`upstreamUrl`: rejects `.` and `..` segments, keeps the base path and the query) with `proxy.test.ts`.
-- [ ] `apps/ui/app/api/[...path]/route.ts` forwards `GET`, `POST`, `PATCH` and `DELETE` to `API_URL`, read on every request; answers 502 when the api is unreachable. `lib/fetch.ts` uses `/api` in the browser and `API_URL` on the server; `NEXT_PUBLIC_API_URL` is gone.
-- [ ] Remove CORS: `plugins/cors.ts`, `@fastify/cors`, `API_TRUSTED_ORIGIN`; update the ui Dockerfile, `docker-compose.yml`, `.env.example` and the README.
+- [x] `apps/ui/lib/proxy.ts` (`upstreamUrl`: rejects `.` and `..` segments, keeps the base path and the query) with `proxy.test.ts`.
+- [x] `apps/ui/app/api/[...path]/route.ts` forwards `GET`, `POST`, `PATCH` and `DELETE` to `API_URL`, read on every request; answers 502 when the api is unreachable. `lib/fetch.ts` uses `/api` in the browser and `API_URL` on the server; `NEXT_PUBLIC_API_URL` is gone.
+- [x] Remove CORS: `plugins/cors.ts`, `@fastify/cors`, `API_TRUSTED_ORIGIN`; update the ui Dockerfile, `docker-compose.yml`, `.env.example` and the README.
   **Verify:** `pnpm test`; in `pnpm dev` the browser sends no request to `:8080`; `docker compose up --build` works; the same ui image started with two different `API_URL` values reaches each api; `docker buildx bake -f docker-bake.hcl` passes.
 
 ### Phase 3: run page discoverability (`feat(ui)`)

@@ -3,9 +3,8 @@
 # Build from the repository root:
 #   docker build -f apps/ui/Dockerfile -t experiments-ui .
 #
-# NEXT_PUBLIC_API_URL is where the *browser* reaches the api. It is inlined at
-# build time, so an image is only right for the address it was built with.
-# Server-side rendering uses the runtime variable API_URL instead.
+# The api address is not built into the image: API_URL is read when the ui
+# starts, by its /api proxy route and by server-side rendering.
 
 FROM node:24-alpine AS base
 WORKDIR /app
@@ -32,9 +31,7 @@ COPY packages/typescript-config/package.json packages/typescript-config/
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts --filter "ui..."
 COPY . .
-ARG NEXT_PUBLIC_API_URL=http://localhost:8080
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
-    NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1
 # Fonts are fetched from Google at build time (next/font).
 RUN pnpm --filter ui build
 

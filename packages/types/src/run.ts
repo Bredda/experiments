@@ -24,6 +24,10 @@ export const runRecordSchema = z.object({
 	scenario: scenarioConfigSchema,
 	/** `null` for a run that was not forked from another. */
 	fork: forkInfoSchema.nullable(),
+	/** What the experiment is for, written by the experimenter; empty when there is none. */
+	notes: z.string(),
+	/** Hidden from the run list by default. Archiving is not deleting: the run and its forks stay. */
+	archived: z.boolean(),
 	createdAt: timeSchema,
 });
 export type RunRecord = z.infer<typeof runRecordSchema>;
@@ -73,6 +77,23 @@ export const forkRunRequestSchema = z.object({
 	interventions: interventionsSchema,
 });
 export type ForkRunRequest = z.input<typeof forkRunRequestSchema>;
+
+/** Body of a run update: only the fields present change, and at least one must be. */
+export const updateRunRequestSchema = z
+	.object({
+		/** Also the name of the run's scenario, so the two never disagree. */
+		name: z.string().trim().min(1).max(120).optional(),
+		notes: z.string().trim().max(2000).optional(),
+		archived: z.boolean().optional(),
+	})
+	.refine(
+		(patch) =>
+			patch.name !== undefined ||
+			patch.notes !== undefined ||
+			patch.archived !== undefined,
+		{ message: "Nothing to update: give a name, notes or archived" },
+	);
+export type UpdateRunRequest = z.input<typeof updateRunRequestSchema>;
 
 /** A run in a fork tree, with what a graph needs to place and label it. */
 export const forkNodeSchema = z.object({

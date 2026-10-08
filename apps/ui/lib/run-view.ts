@@ -418,6 +418,23 @@ export function agentSummary(
 	};
 }
 
+export type AgentOverview = {
+	agentId: string;
+	behavior: string;
+	memory: string | undefined;
+	model: string | undefined;
+};
+
+/** The agents of the scenario in a line each, for a list to pick one from. */
+export function agentsOverview(run: RunRecord): AgentOverview[] {
+	return run.scenario.agents.map((agent) => ({
+		agentId: agent.id,
+		behavior: agent.behavior,
+		memory: agent.memory,
+		model: agent.model,
+	}));
+}
+
 export type ObservationSummary = {
 	step: number;
 	time: string;

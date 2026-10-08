@@ -33,6 +33,8 @@ export function RunViewer({
 		useRunExecution(initialRun, initialEvents);
 	const [selection, setSelection] = useState<RunSelection | null>(null);
 	const [eventsOpen, setEventsOpen] = useState(true);
+	// The inspector stays open without a selection, to say what can be selected.
+	const [inspectorOpen, setInspectorOpen] = useState(true);
 	// null means all rooms. A run with a single room has no "All rooms" card,
 	// so that room is the filter from the start.
 	const [roomFilter, setRoomFilter] = useState<string | null>(
@@ -67,6 +69,14 @@ export function RunViewer({
 		() => roomSummaries(run, shownEvents),
 		[run, shownEvents],
 	);
+	const select = (next: RunSelection) => {
+		setSelection(next);
+		setInspectorOpen(true);
+	};
+	const closeInspector = () => {
+		setSelection(null);
+		setInspectorOpen(false);
+	};
 	// A selection from a later step is not part of the view the cursor shows.
 	const shownSelection =
 		selection?.type === "event" &&
@@ -93,6 +103,10 @@ export function RunViewer({
 				onPause={pause}
 				eventsOpen={eventsOpen}
 				onToggleEvents={() => setEventsOpen((open) => !open)}
+				inspectorOpen={inspectorOpen}
+				onToggleInspector={() =>
+					inspectorOpen ? closeInspector() : setInspectorOpen(true)
+				}
 				onNextStep={() => nextStep(stepWith)}
 				tray={
 					<DraftsTray
@@ -113,7 +127,7 @@ export function RunViewer({
 							agentIds={run.scenario.agents.map((agent) => agent.id)}
 							filter={eventFilter}
 							onFilter={setEventFilter}
-							onSelect={(id) => setSelection({ type: "event", id })}
+							onSelect={(id) => select({ type: "event", id })}
 							selected={
 								shownSelection?.type === "event" ? shownSelection.id : null
 							}
@@ -128,7 +142,7 @@ export function RunViewer({
 						selectedAgentId={
 							shownSelection?.type === "agent" ? shownSelection.id : null
 						}
-						onSelectAgent={(id) => setSelection({ type: "agent", id })}
+						onSelectAgent={(id) => select({ type: "agent", id })}
 					/>
 					<div className="min-h-0 flex-1 overflow-hidden rounded-lg border">
 						<Chat
@@ -140,20 +154,20 @@ export function RunViewer({
 							selectedAgentId={
 								shownSelection?.type === "agent" ? shownSelection.id : null
 							}
-							onSelectEvent={(id) => setSelection({ type: "event", id })}
-							onSelectAgent={(id) => setSelection({ type: "agent", id })}
+							onSelectEvent={(id) => select({ type: "event", id })}
+							onSelectAgent={(id) => select({ type: "agent", id })}
 						/>
 					</div>
 				</section>
-				{shownSelection && (
+				{inspectorOpen && (
 					<aside className="min-h-0 w-90 shrink-0 border-l">
 						<Inspector
 							run={run}
 							selection={shownSelection}
 							events={shownEvents}
 							step={step}
-							onSelect={setSelection}
-							onClose={() => setSelection(null)}
+							onSelect={select}
+							onClose={closeInspector}
 							intervene={{ target, drafts, onAdd: add, onRemove: remove }}
 						/>
 					</aside>

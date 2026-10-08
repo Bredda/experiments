@@ -5,6 +5,7 @@ import {
 	ArrowRight01Icon,
 	NextIcon,
 	PanelLeftIcon,
+	PanelRightIcon,
 	PauseIcon,
 	PlayIcon,
 } from "@hugeicons/core-free-icons";
@@ -27,6 +28,8 @@ export function ControlBar({
 	pausing,
 	eventsOpen,
 	onToggleEvents,
+	inspectorOpen,
+	onToggleInspector,
 	onNextStep,
 	onPlay,
 	onPause,
@@ -47,6 +50,8 @@ export function ControlBar({
 	pausing: boolean;
 	eventsOpen: boolean;
 	onToggleEvents: () => void;
+	inspectorOpen: boolean;
+	onToggleInspector: () => void;
 	onNextStep: () => void;
 	onPlay: () => void;
 	onPause: () => void;
@@ -157,6 +162,15 @@ export function ControlBar({
 					interventions={drafts}
 					interventionLabels={draftLabels}
 				/>
+				<Button
+					variant={inspectorOpen ? "secondary" : "ghost"}
+					size="icon-sm"
+					onClick={onToggleInspector}
+					aria-label={inspectorOpen ? "Hide inspector" : "Show inspector"}
+					aria-pressed={inspectorOpen}
+				>
+					<HugeiconsIcon icon={PanelRightIcon} />
+				</Button>
 			</div>
 		</div>
 	);

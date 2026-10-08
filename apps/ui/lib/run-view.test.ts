@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 import {
 	agentRooms,
 	agentSummary,
+	agentsOverview,
 	appliesAtStep,
 	buildTimeline,
 	EVENT_TYPES,
@@ -576,6 +577,33 @@ describe("agentSummary", () => {
 			persona: undefined,
 			model: undefined,
 		});
+	});
+});
+
+describe("agentsOverview", () => {
+	it("lists the agents of the scenario with their configuration", () => {
+		const config = run([{ id: "main", members: ["alice", "bob"] }]);
+		config.scenario.agents[1] = {
+			id: "bob",
+			behavior: "llm",
+			memory: "last_n",
+			model: "claude-haiku-4-5-20251001",
+		} as (typeof config.scenario.agents)[number];
+
+		expect(agentsOverview(config)).toEqual([
+			{
+				agentId: "alice",
+				behavior: "mentioned",
+				memory: undefined,
+				model: undefined,
+			},
+			{
+				agentId: "bob",
+				behavior: "llm",
+				memory: "last_n",
+				model: "claude-haiku-4-5-20251001",
+			},
+		]);
 	});
 });
 

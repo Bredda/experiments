@@ -43,7 +43,7 @@ Work on branch `feat/run-page-polish`, one commit per phase (phase 3 and 4 have 
 
 ### Phase 3: run page discoverability (`feat(ui)`)
 
-- [ ] 3a. The inspector is never empty: without a selection it lists the agents (name, behavior, memory), each one clickable; the control bar reopens it after it was closed.
+- [x] 3a. The inspector is never empty: without a selection it lists the agents (name, behavior, memory), each one clickable; the control bar reopens it after it was closed.
   **Verify:** `pnpm --filter ui test` (`agentsOverview`); by hand: empty state, click an agent, close, reopen from the bar, move the cursor back with an event selected.
 - [ ] 3b. Hover and focus affordances with `Tooltip` (a small `Hint` wrapper) on everything clickable; with a single room the room card is not a button.
   **Verify:** by hand: tooltip on hover and on keyboard focus for each kind of clickable element; the single room card has no hover and no `aria-pressed`.

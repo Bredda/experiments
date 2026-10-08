@@ -23,10 +23,16 @@ Each line says what, and why it came up. Items marked *(from todo)* were the pre
 - Cursor conveniences: `←`/`→` and Home/End keys, keep the chat and the event viewer scrolled to the cursor step, an autoplay speed control (the 600 ms delay is fixed).
 - Put the cursor step and the selection in the URL (`?step=7&agent=alice`) so a moment of a run can be linked.
 - From an event in the inspector, a link to "what its agent observed at that step".
+- Discoverability of the run page, so a first-time user knows where to click (proposal, in the order of value for effort):
+  - An inspector that is never empty: with no selection it says "select an event, a message or an agent to inspect it" and lists the agents (name, behavior, memory), each one clickable. It needs a way to reopen the panel from the control bar.
+  - Hover and focus affordances on everything clickable (pointer cursor, background, tooltip such as "Open event details" or "Inspect alice", with the existing `Tooltip`), and a room card that no longer looks like a button when the run has a single room (selecting it does nothing).
+  - A "?" button in the control bar opening a short legend of the page (click an event to inspect it, move the slider to replay a step, Fork to branch, Intervene to change what an agent sees), with a "new" dot until it was opened once (`localStorage`, wrapped in try/catch).
+  - Actions where things are seen: on hover, a step separator in the chat offers "Go to step N" and "Fork here", and a message offers "Inspect <agent>" and "Redact from <agent>…". More to build and it duplicates entry points to interventions, so decide what to expose first. Related: the cryptic event labels and the keyboard shortcuts above.
 - Run list: delete, rename or archive runs (there is no delete route; names are generated), and short notes or tags on a run to keep track of what an experiment was for.
 
 ## Interventions
 
+- Tell inherited interventions from the fork's own. A fork at step N copies its parent's history, interventions included (they are recorded at the step they follow), and the ones the experimenter adds in the fork are recorded at the same step N, so the log and the chat show both alike. Copied events keep the parent's ids, so the ui could compare the ids of the fork's events with the parent's (one extra fetch for a forked run, `run.fork.parentRunId`) and tag the intervention events it inherits; the same comparison could draw a "forked from X at step N" line in the chat for every copied event. *(from axis 4)*
 - Show the interventions of a run on its fork-tree lane (a mark at the step they follow). The fork tree API carries no interventions today, so this needs the node to carry them. *(from axis 4)*
 
 ## Running and scenarios

@@ -1,0 +1,17 @@
+name: Epic
+description: A roadmap axis or theme that groups sub-issues.
+labels: [epic]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: The observable outcome that closes the epic. Add the sub-issues from the issue's sub-issues list.
+    validations:
+      required: true

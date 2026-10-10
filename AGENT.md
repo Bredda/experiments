@@ -43,7 +43,7 @@ Before declaring work done: `pnpm lint` and `pnpm check-types`.
 
 Docker: `docker compose up --build` runs the api and the ui (see the README for the variables).
 
-Husky runs `biome check --staged` on commit and `check-types` + `test` on push. Fix failures; do not use `--no-verify`.
+Husky runs `biome check --staged` on commit and, on push, `scripts/project/guard-push.sh` (the branch must be `<type>/<issue>-<slug>` and its issue open, not an epic, Ready or In progress; needs network and `gh` with the `project` scope) then `check-types` + `test`. Fix failures; do not use `--no-verify` or `SKIP_ISSUE_GUARD=1` to get around them.
 
 Local setup: copy `.env.example` to `.env`. `@experiments/settings` validates env on import, and `ANTHROPIC_API_KEY` must start with `sk-ant-`, so any process importing it fails without a well-formed key, even when no LLM agent is used.
 

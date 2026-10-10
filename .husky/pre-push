@@ -1,2 +1,3 @@
+scripts/project/guard-push.sh
 pnpm check-types
 pnpm test

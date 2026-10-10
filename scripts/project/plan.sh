@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Usage: plan.sh <epic>
 # Marks an epic and its open sub-issues Ready once the sub-issues are created.
-# Sub-issues already In progress are left alone.
+# Sub-issues already In progress, and an epic that is already In progress or
+# Done, are left alone (so sub-issues can be added to a running epic).
 source "$(dirname "$0")/lib.sh"
 [ $# -eq 1 ] || { log "usage: $0 <epic>"; exit 2; }
 init_project
@@ -20,4 +21,7 @@ while read -r number state; do
 	[ "$(issue_status "$number")" = "In progress" ] && continue
 	set_status "$number" Ready
 done <<<"$children"
-set_status "$epic" Ready
+case "$(issue_status "$epic")" in
+"In progress" | Done) ;;
+*) set_status "$epic" Ready ;;
+esac

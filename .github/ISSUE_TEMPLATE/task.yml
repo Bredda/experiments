@@ -1,0 +1,18 @@
+name: Task
+description: A unit of work sized for one pull request. Attach it to an epic as a sub-issue.
+labels: []
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this is needed and what it builds on.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and done when
+      description: What changes, and what makes it done (observable behavior, tests).
+    validations:
+      required: true

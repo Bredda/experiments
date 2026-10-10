@@ -93,9 +93,20 @@ Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/a
 - Keep deterministic components testable offline: use fakes instead of real LLM calls.
 - Surface genuine design ambiguity instead of silently introducing a framework-level abstraction.
 
+## Planning and work tracking
+
+Planning lives in GitHub, not in the repo: the [experiments project](https://github.com/users/Bredda/projects/9) (Status: Backlog, Todo, In Progress, Done; Horizon: Now, Next, Later) over the issues of this repository.
+
+- An **epic** is an issue labelled `epic` that groups one roadmap axis or theme; its **sub-issues** (GitHub sub-issues) are the units of work. A sub-issue is sized for one pull request.
+- Work on a sub-issue only when asked to, or when it is the one the user pointed to. Do not pick items from the backlog on your own.
+- Branch `<type>/<issue-number>-<slug>` (for instance `feat/123-compare-runs`), one pull request for the sub-issue, with `Closes #<number>` in its description so merging closes the issue and moves it to Done. The pull request description says what changed and how it was verified.
+- A sub-issue is done when what it describes works and `pnpm lint`, `pnpm check-types` and `pnpm test` pass. If the plan turns out wrong or the issue is too big, edit the issue or split it into more sub-issues before continuing; surface genuine design ambiguity in the issue rather than deciding silently.
+- A decision that changes the simulation model or an invariant updates `AGENT.md`, `design.md` or `docs/agent/*` in the same pull request.
+- `roadmap.md` keeps only the vision, principles and what is out of scope.
+
 ## Commits, releases and CI
 
-- Commit messages and **pull request titles are conventional commits** (`feat:`, `fix:`, `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`, optional scope). PRs are merged with **rebase and merge**: each commit of the branch lands on `main` unchanged and release-please turns each into a changelog line, so keep commits atomic, green on their own and typed honestly (`feat` only for what a user can now do; plumbing is `refactor`). Do not leave fix-up commits: squash them locally before pushing. The PR title is still checked.
+- **One pull request per sub-issue, merged with squash and merge.** The pull request title becomes the single commit on `main` and release-please turns it into one changelog line, so the title is a **conventional commit** (`feat:`, `fix:`, `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`, optional scope; `!` for a breaking change) typed honestly (`feat` only for what a user can now do; plumbing is `refactor`) and written for a reader of the changelog. CI checks it. Commits inside the branch are not read by release-please and may be fix-ups. The repository only allows squash merges, uses the PR title as the commit title and leaves the body empty.
 - Releases are automated by release-please. Never edit `CHANGELOG.md`, the root `version` or `.release-please-manifest.json` by hand.
 - CI (`.github/workflows/ci.yml`) runs `pnpm lint`, `pnpm check-types` and `pnpm test` on pull requests and on `main`. A single `Docker build` job builds both images in parallel (`docker-bake.hcl`; `docker buildx bake -f docker-bake.hcl` locally), only on pull requests that touch files the images use, and not on release PRs. Images are published once, by `release.yml`, when a release is created. Run the three commands before pushing.
 - Images: `apps/api/Dockerfile` and `apps/ui/Dockerfile`, built from the repo root on `node:24-alpine`. Both install dependencies from the lockfile and the `package.json` manifests only, before copying the sources, so the install layer is reused until a dependency changes: **when you add a workspace package, add its `package.json` to the manifest `COPY` lines of both Dockerfiles** (the frozen-lockfile install fails otherwise). The api runs from TypeScript source with `tsx` (workspace packages have no build step), so `tsx` is a production dependency of `apps/api`. The ui is a Next.js standalone build; it knows the api only through the runtime variable `API_URL`, read by its `/api` proxy route, so one image serves any api.
@@ -113,8 +124,5 @@ Vitest runs in `packages/engine` (`pnpm --filter @experiments/engine test`), `pa
 | Adding a behavior, scheduler or memory | skill `add-engine-component` |
 | Adding an event type | skill `add-event-type` |
 | Overall design | [design.md](design.md) |
-| Current task breakdown (follow it when implementing) | [todo.md](todo.md) |
-| Planned work (strategy, axes, order) | [roadmap.md](roadmap.md) |
-| Unscheduled ideas and cleanups | [backlog.md](backlog.md) |
-
-`roadmap.md` holds the committed direction and `backlog.md` the unscheduled ideas and cleanups; `todo.md` holds only the plan in progress. Do not implement items from the roadmap or the backlog unless asked, and when one is decided move it to the right file instead of duplicating it.
+| Planned work, current task, backlog | the GitHub project and issues (see Planning and work tracking) |
+| Vision, principles, out of scope | [roadmap.md](roadmap.md) |

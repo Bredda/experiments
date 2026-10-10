@@ -1,8 +1,7 @@
 name: PR title
 
-# Pull requests are merged with rebase and merge: release-please reads the
-# conventional commit messages of the branch. The title is checked too, so the
-# pull request is described the same way.
+# Pull requests are merged with squash and merge and the title becomes the
+# commit on main: release-please reads it for the changelog.
 on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened]

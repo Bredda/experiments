@@ -95,14 +95,23 @@ Details, event catalogue and persistence behavior: [docs/agent/engine.md](docs/a
 
 ## Planning and work tracking
 
-Planning lives in GitHub, not in the repo: the [experiments project](https://github.com/users/Bredda/projects/9) (Status: Backlog, Todo, In Progress, Done; Horizon: Now, Next, Later) over the issues of this repository.
+Planning lives in GitHub, not in the repo: the [experiments project](https://github.com/users/Bredda/projects/9) over the issues of this repository. Statuses are driven by scripts and workflows, not by hand: do not move items in the project, use `scripts/project/` (see its README).
 
-- An **epic** is an issue labelled `epic` that groups one roadmap axis or theme; its **sub-issues** (GitHub sub-issues) are the units of work. A sub-issue is sized for one pull request.
-- Work on a sub-issue only when asked to, or when it is the one the user pointed to. Do not pick items from the backlog on your own.
-- Branch `<type>/<issue-number>-<slug>` (for instance `feat/123-compare-runs`), one pull request for the sub-issue, with `Closes #<number>` in its description so merging closes the issue and moves it to Done. The pull request description says what changed and how it was verified.
-- A sub-issue is done when what it describes works and `pnpm lint`, `pnpm check-types` and `pnpm test` pass. If the plan turns out wrong or the issue is too big, edit the issue or split it into more sub-issues before continuing; surface genuine design ambiguity in the issue rather than deciding silently.
-- A decision that changes the simulation model or an invariant updates `AGENT.md`, `design.md` or `docs/agent/*` in the same pull request.
-- `roadmap.md` keeps only the vision, principles and what is out of scope.
+**Statuses.** `Backlog` (an idea), `Ready` (planned, sub-issues sized for one pull request), `In progress` (a branch is open), `Done` (closed). `Horizon` (Now, Next, Later) is a free field for ordering.
+
+**Epic.** An issue labelled `epic`, a bounded deliverable with a description of its scope and the value expected. It starts in Backlog. Planning an epic means writing its implementation plan with the user and creating its **sub-issues** (GitHub sub-issues), each sized for one pull request and saying what is done when; then `scripts/project/plan.sh <epic>` moves the epic and its sub-issues to Ready. An epic's status is derived from its sub-issues: In progress as soon as one starts, closed and Done with the last one. Work on a sub-issue only when asked to, or when it is the one the user pointed to; do not pick items from the backlog on your own.
+
+**Continuous improvement.** Small work that belongs to no epic goes under the open epic labelled `continuous` (one per period, it holds at most 100 sub-issues and stays In progress). Start it with `scripts/project/improve.sh <type> "<title>"`: it creates the issue, puts it In progress and creates the branch.
+
+**Sub-issue lifecycle.**
+
+1. Branch `<type>/<issue>-<slug>` (for instance `feat/123-compare-runs`). The first push puts the issue and its epic In progress (workflow `Project sync`); the pre-push hook refuses a branch whose issue is not Ready or In progress.
+2. One pull request per sub-issue, titled as a conventional commit, with `Closes #<issue>` in its description (`Refs #<issue>` if the issue needs several pull requests, the last one closes it). The `Issue reference` check requires the branch and the description to name the same open sub-issue. The description says what changed and how it was verified. A pull request stacked on another branch does not close its issue until it reaches `main`.
+3. Merging closes the issue; the workflow sets it Done and closes the epic once all its sub-issues are closed. A daily run of `reconcile.sh` repairs any drift.
+
+If the plan turns out wrong or an issue is too big, edit the issue or split it into more sub-issues before continuing; surface genuine design ambiguity in the issue rather than deciding silently. A decision that changes the simulation model or an invariant updates `AGENT.md`, `design.md` or `docs/agent/*` in the same pull request. `roadmap.md` keeps only the vision, principles and what is out of scope.
+
+The scripts and workflows write to the project with the `GH_PROJECT_PAT` secret (`GITHUB_TOKEN` cannot write to a user-owned project); locally `gh` needs the `project` scope.
 
 ## Commits, releases and CI
 

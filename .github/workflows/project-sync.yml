@@ -1,0 +1,67 @@
+name: Project sync
+
+# Keeps issue, epic and project statuses in sync with the work, with the
+# scripts in scripts/project. They write to a user-owned project, which
+# GITHUB_TOKEN cannot do, hence the GH_PROJECT_PAT secret.
+on:
+  push:
+    branches-ignore:
+      - main
+      - "release-please--**"
+  issues:
+    types: [closed, reopened]
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GH_TOKEN: ${{ secrets.GH_PROJECT_PAT }}
+
+jobs:
+  # A branch named <type>/<issue>-<slug> starts that issue and its epic.
+  start:
+    name: Start the issue of the branch
+    if: github.event_name == 'push' && !github.event.deleted
+    runs-on: ubuntu-latest
+    concurrency:
+      group: project-sync-branch-${{ github.ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start the issue named by the branch
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [[ "$BRANCH" =~ ^[a-z]+/([0-9]+)- ]]; then
+            scripts/project/start.sh "${BASH_REMATCH[1]}"
+          else
+            echo "Branch $BRANCH does not name an issue, nothing to start"
+          fi
+
+  # A closed (or reopened) issue is Done (or not), and its epic follows.
+  epic:
+    name: Derive the epic of the issue
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: project-sync-issue-${{ github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync the issue and its epic
+        env:
+          ISSUE: ${{ github.event.issue.number }}
+        run: scripts/project/sync-parent.sh "$ISSUE"
+
+  # Safety net for what no event covers (a sub-issue added to an epic, a
+  # status moved by hand).
+  reconcile:
+    name: Reconcile every epic
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: project-sync-reconcile
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/project/reconcile.sh

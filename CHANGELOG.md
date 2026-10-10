@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.3.0](https://github.com/Bredda/experiments/compare/v1.2.0...v1.3.0) (2026-10-10)
+
+
+### Features
+
+* run page polish ([#69](https://github.com/Bredda/experiments/issues/69)) ([daef3ae](https://github.com/Bredda/experiments/commit/daef3aec5d5e5a476cbb751b1178336f582c0b6f))
+
+
+### Bug Fixes
+
+* plan.sh must not demote an epic already in progress ([#89](https://github.com/Bredda/experiments/issues/89)) ([cd53f9b](https://github.com/Bredda/experiments/commit/cd53f9b9b3a6f7cbe6f537eef1462d28480309eb))
+
+
+### Documentation
+
+* describe the issue and pull request workflow ([#91](https://github.com/Bredda/experiments/issues/91)) ([d53ae40](https://github.com/Bredda/experiments/commit/d53ae40f7b4d841e730dc61efb15deec7d97d4cc))
+* plan work in github issues and squash-merge pull requests ([#68](https://github.com/Bredda/experiments/issues/68)) ([22c7a40](https://github.com/Bredda/experiments/commit/22c7a40c9ac4570c5a1c300f36ef50a58627f652))
+* refresh the roadmap and point to the platform repo ([#115](https://github.com/Bredda/experiments/issues/115)) ([2d5476e](https://github.com/Bredda/experiments/commit/2d5476e67e93e60c790139148f84099199d44450))
+
 ## [1.2.0](https://github.com/Bredda/experiments/compare/v1.1.0...v1.2.0) (2026-10-08)
 
 

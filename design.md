@@ -93,7 +93,7 @@ Seeds are alphanumeric (`0-9`, `A-Z`). The engine currently supports exactly one
 
 ## 9. Runs and persistence
 
-A run is stored in SQLite (`DB_PATH`) through `RunStore`: a `runs` table (id, name, seed, status, created_at), a `scenarios` table (scenario JSON per run) and an append-only `events` table. Every event is persisted. Run status is `created` after creation, `running` after the first step and `completed` once the scenario's number of steps is reached; a completed run cannot be stepped, and only one step can execute at a time per run.
+A run is stored in SQLite (`DB_PATH`) through `RunStore`: a `runs` table (id, name, seed, status, created_at), a `scenarios` table (scenario JSON per run), an append-only `events` table, a `forks` table (lineage of forked runs) and a `run_meta` table (the experimenter's notes and the archived flag of a run). Every event is persisted. Run status is `created` after creation, `running` after the first step and `completed` once the scenario's number of steps is reached; a completed run cannot be stepped, and only one step can execute at a time per run. A run can be renamed, annotated and archived; it can be deleted only when no other run was forked from it (a fork copies its parent's history), so archiving is the way to put such a run away.
 
 ## 10. Reproducibility
 
@@ -107,7 +107,10 @@ Fastify, with request/response schemas derived from `packages/types`. OpenAPI is
 GET  /runs
 POST /runs              create a run from a scenario
 GET  /runs/:id
+PATCH /runs/:id         rename, change the notes, archive or unarchive
+DELETE /runs/:id        delete a run; 409 while it has forks or executes a step
 GET  /runs/:id/events
+GET  /runs/:id/tree     the fork tree that contains the run
 GET  /runs/:id/steps/:step/observations   what each agent observed at that step
 POST /runs/:id/steps/next   advance one step, optionally with interventions; 400 if one cannot be applied, 409 if completed or busy
 POST /runs/:id/fork         fork a run at a step, optionally with interventions
@@ -116,7 +119,7 @@ GET  /healthz/{health,live,ready}
 
 ## 12. UI
 
-Next.js App Router with shadcn components. Pages: run list, run creation form, and a run page. Open runs are kept as tabs in the site header.
+Next.js App Router with shadcn components. Pages: run list (search, archive, rename and notes, delete), run creation form, and a run page. Open runs are kept as tabs in the site header. The browser talks only to the ui: its `/api` route forwards to the api at `API_URL`, read at runtime, so there is no CORS and no api address built into the image.
 
 The run page has three roles, constrained to the viewport height with independent scroll areas:
 
@@ -130,4 +133,4 @@ The run page has three roles, constrained to the viewport height with independen
 └───────────┴──────────────────────────────────────┴───────────────┘
 ```
 
-The left panel is the raw event log, the centre is a narrative reading of the run (messages, steps, silences, who was selected), and the right panel shows the detail of whatever is selected; it opens on selection and closes on demand. The page keeps the run and its events in client state, appends what each step returns, and can advance step by step or automatically until the run completes. A time cursor in the control bar moves every panel to any played step without interrupting execution, and the agent detail shows what that agent observed at the step, rebuilt by the engine through `Simulation.observationsAt`. The event viewer can be filtered by agent and event type.
+The left panel is the raw event log, the centre is a narrative reading of the run (messages, steps, silences, who was selected), and the right panel shows the detail of whatever is selected, or, with nothing selected, how to select and the agents of the run; it can be hidden from the control bar. Everything clickable says what it does (tooltips), a "?" legend explains the page, and steps and messages of the chat offer their actions (go to the step, fork there, inspect the agent, redact the message from an agent) where they are seen. The page keeps the run and its events in client state, appends what each step returns, and can advance step by step or automatically until the run completes. A time cursor in the control bar moves every panel to any played step without interrupting execution, and the agent detail shows what that agent observed at the step, rebuilt by the engine through `Simulation.observationsAt`. The event viewer can be filtered by agent and event type.

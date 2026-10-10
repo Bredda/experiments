@@ -3,6 +3,7 @@ import { Radio01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { RunStatusBadge } from "@/components/runs/status-badge";
 import { Button } from "@/components/ui/button";
+import { Hint } from "./hint";
 
 /**
  * What the run is doing and what the view shows, in one place: the status of
@@ -25,15 +26,12 @@ export function RunState({
 		<div className="flex items-center gap-1.5">
 			<RunStatusBadge status={status} />
 			{!live && (
-				<Button
-					variant="outline"
-					size="xs"
-					onClick={onLive}
-					title={`Viewing step ${step}: go back to the latest step`}
-				>
-					<HugeiconsIcon icon={Radio01Icon} data-icon="inline-start" />
-					Back to live
-				</Button>
+				<Hint label={`Viewing step ${step}: go back to the latest step`}>
+					<Button variant="outline" size="xs" onClick={onLive}>
+						<HugeiconsIcon icon={Radio01Icon} data-icon="inline-start" />
+						Back to live
+					</Button>
+				</Hint>
 			)}
 		</div>
 	);

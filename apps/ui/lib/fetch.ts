@@ -1,16 +1,15 @@
-// Where the browser reaches the api. Inlined at build time (NEXT_PUBLIC_*).
-const PUBLIC_API_URL =
-	process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+import { DEFAULT_API_URL } from "./proxy";
 
 /**
- * Server-side rendering may reach the api at another address than the browser
- * does (inside a Docker network, for instance): API_URL, read at runtime, wins
- * there.
+ * The browser calls the ui's own `/api` route, which forwards to the api
+ * (see `app/api/[...path]/route.ts`), so no api address is built into the
+ * page. Server-side rendering reaches the api directly at `API_URL`, read at
+ * runtime.
  */
 function apiUrl(): string {
 	return typeof window === "undefined"
-		? (process.env.API_URL ?? PUBLIC_API_URL)
-		: PUBLIC_API_URL;
+		? (process.env.API_URL ?? DEFAULT_API_URL)
+		: "/api";
 }
 
 export class ApiError extends Error {

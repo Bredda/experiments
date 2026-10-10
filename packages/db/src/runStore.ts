@@ -47,14 +47,25 @@ CREATE TABLE IF NOT EXISTS forks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_forks_parent_run_id ON forks(parent_run_id);
+
+-- What the experimenter says about a run. A table of its own, like forks, so
+-- that a database created before it needs no migration: it is created empty
+-- when opened, and a run without a row has no notes and is not archived.
+CREATE TABLE IF NOT EXISTS run_meta (
+  run_id TEXT PRIMARY KEY REFERENCES runs(run_id) ON DELETE CASCADE,
+  notes TEXT NOT NULL DEFAULT '',
+  archived INTEGER NOT NULL DEFAULT 0
+);
 `;
 
 const RUN_SELECT = `
 SELECT r.run_id, r.name, r.seed, r.status, r.created_at, s.scenario_json,
-  f.parent_run_id, f.step AS fork_step, f.purpose AS fork_purpose
+  f.parent_run_id, f.step AS fork_step, f.purpose AS fork_purpose,
+  COALESCE(m.notes, '') AS notes, COALESCE(m.archived, 0) AS archived
 FROM runs r
 JOIN scenarios s ON s.run_id = r.run_id
 LEFT JOIN forks f ON f.run_id = r.run_id
+LEFT JOIN run_meta m ON m.run_id = r.run_id
 `;
 
 // Every run of the fork tree that contains :run_id. The root is found by
@@ -99,9 +110,11 @@ interface RunRow {
 	parent_run_id: string | null;
 	fork_step: number | null;
 	fork_purpose: string | null;
+	notes: string;
+	archived: number;
 }
 
-interface ForkNodeRow extends RunRow {
+interface ForkNodeRow extends Omit<RunRow, "seed" | "notes" | "archived"> {
 	played_steps: number;
 	root_run_id: string;
 }
@@ -130,6 +143,8 @@ function rowToRun(row: RunRow): RunRecord {
 						step: row.fork_step,
 						purpose: row.fork_purpose,
 					},
+		notes: row.notes,
+		archived: row.archived === 1,
 		createdAt: row.created_at,
 	});
 }
@@ -213,6 +228,8 @@ export class RunStore implements Disposable {
 			status,
 			scenario: params.scenario,
 			fork: null,
+			notes: "",
+			archived: false,
 			createdAt: createdAt.toISOString(),
 		};
 	}
@@ -297,6 +314,8 @@ export class RunStore implements Disposable {
 				step: params.step,
 				purpose: params.purpose,
 			},
+			notes: "",
+			archived: false,
 			createdAt: createdAt.toISOString(),
 		};
 	}
@@ -348,6 +367,63 @@ export class RunStore implements Disposable {
 			.run(status, runId);
 	}
 
+	/**
+	 * Changes what the experimenter says about a run. The name is also the name
+	 * of its scenario, as it is for a fork, so both are updated. Returns the run
+	 * as it is now, or `undefined` if there is no such run.
+	 */
+	updateRun(
+		runId: RunId,
+		patch: { name?: string; notes?: string; archived?: boolean },
+	): RunRecord | undefined {
+		this.#db.exec("BEGIN");
+		try {
+			if (patch.name !== undefined) {
+				this.#db
+					.prepare("UPDATE runs SET name = ? WHERE run_id = ?")
+					.run(patch.name, runId);
+				this.#db
+					.prepare(
+						"UPDATE scenarios SET scenario_json = json_set(scenario_json, '$.name', ?) WHERE run_id = ?",
+					)
+					.run(patch.name, runId);
+			}
+			if (patch.notes !== undefined || patch.archived !== undefined) {
+				this.#db
+					.prepare(
+						`INSERT INTO run_meta (run_id) SELECT run_id FROM runs WHERE run_id = ?
+	         ON CONFLICT (run_id) DO NOTHING`,
+					)
+					.run(runId);
+				if (patch.notes !== undefined) {
+					this.#db
+						.prepare("UPDATE run_meta SET notes = ? WHERE run_id = ?")
+						.run(patch.notes, runId);
+				}
+				if (patch.archived !== undefined) {
+					this.#db
+						.prepare("UPDATE run_meta SET archived = ? WHERE run_id = ?")
+						.run(patch.archived ? 1 : 0, runId);
+				}
+			}
+			this.#db.exec("COMMIT");
+		} catch (error) {
+			this.#db.exec("ROLLBACK");
+			throw error;
+		}
+
+		return this.getRun(runId);
+	}
+
+	/** How many runs were forked directly from this one. */
+	countForks(runId: RunId): number {
+		const row = this.#db
+			.prepare("SELECT COUNT(*) AS count FROM forks WHERE parent_run_id = ?")
+			.get(runId) as { count: number };
+
+		return row.count;
+	}
+
 	/** Fails, and deletes nothing, while other runs were forked from this one. */
 	deleteRun(runId: RunId): void {
 		this.#db.exec("BEGIN");
@@ -355,6 +431,7 @@ export class RunStore implements Disposable {
 			this.#db.prepare("DELETE FROM events WHERE run_id = ?").run(runId);
 			this.#db.prepare("DELETE FROM scenarios WHERE run_id = ?").run(runId);
 			this.#db.prepare("DELETE FROM forks WHERE run_id = ?").run(runId);
+			this.#db.prepare("DELETE FROM run_meta WHERE run_id = ?").run(runId);
 			this.#db.prepare("DELETE FROM runs WHERE run_id = ?").run(runId);
 			this.#db.exec("COMMIT");
 		} catch (error) {

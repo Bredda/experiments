@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 import {
 	agentRooms,
 	agentSummary,
+	agentsOverview,
 	appliesAtStep,
 	buildTimeline,
 	EVENT_TYPES,
@@ -24,6 +25,7 @@ import {
 	interventionLabel,
 	interventionTarget,
 	lastStep,
+	messageRedactionTargets,
 	modelCallLabel,
 	NO_FILTER,
 	observationSummary,
@@ -579,6 +581,33 @@ describe("agentSummary", () => {
 	});
 });
 
+describe("agentsOverview", () => {
+	it("lists the agents of the scenario with their configuration", () => {
+		const config = run([{ id: "main", members: ["alice", "bob"] }]);
+		config.scenario.agents[1] = {
+			id: "bob",
+			behavior: "llm",
+			memory: "last_n",
+			model: "claude-haiku-4-5-20251001",
+		} as (typeof config.scenario.agents)[number];
+
+		expect(agentsOverview(config)).toEqual([
+			{
+				agentId: "alice",
+				behavior: "mentioned",
+				memory: undefined,
+				model: undefined,
+			},
+			{
+				agentId: "bob",
+				behavior: "llm",
+				memory: "last_n",
+				model: "claude-haiku-4-5-20251001",
+			},
+		]);
+	});
+});
+
 describe("eventsUntil", () => {
 	const events: AnyEvent[] = [
 		joined("alice", "main"),
@@ -775,5 +804,40 @@ describe("modelCallLabel", () => {
 
 	it("has nothing to show for a prompt recorded without a model call", () => {
 		expect(modelCallLabel(prompt("alice", 1))).toBeUndefined();
+	});
+});
+
+describe("messageRedactionTargets", () => {
+	const message = published("alice", "main", 1);
+	const other = joined("carol", "other");
+	const events: AnyEvent[] = [
+		joined("alice", "main"),
+		joined("bob", "main"),
+		other,
+		message,
+	];
+
+	it("lists the members of the room of the message", () => {
+		expect(messageRedactionTargets(events, message.id)).toEqual([
+			{ agentId: "alice", redacted: false },
+			{ agentId: "bob", redacted: false },
+		]);
+	});
+
+	it("marks the agents it was already redacted from", () => {
+		expect(
+			messageRedactionTargets(
+				[...events, redacted("bob", message.id, 1)],
+				message.id,
+			),
+		).toEqual([
+			{ agentId: "alice", redacted: false },
+			{ agentId: "bob", redacted: true },
+		]);
+	});
+
+	it("is empty for something that is not a message", () => {
+		expect(messageRedactionTargets(events, other.id)).toEqual([]);
+		expect(messageRedactionTargets(events, "missing")).toEqual([]);
 	});
 });

@@ -5,6 +5,7 @@ import {
 	ArrowRight01Icon,
 	NextIcon,
 	PanelLeftIcon,
+	PanelRightIcon,
 	PauseIcon,
 	PlayIcon,
 } from "@hugeicons/core-free-icons";
@@ -13,6 +14,8 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ForkSheet } from "./fork-sheet";
+import { Hint } from "./hint";
+import { Legend } from "./legend";
 import { RunState } from "./run-state";
 
 export function ControlBar({
@@ -27,6 +30,10 @@ export function ControlBar({
 	pausing,
 	eventsOpen,
 	onToggleEvents,
+	forkOpen,
+	onForkOpenChange,
+	inspectorOpen,
+	onToggleInspector,
 	onNextStep,
 	onPlay,
 	onPause,
@@ -47,6 +54,10 @@ export function ControlBar({
 	pausing: boolean;
 	eventsOpen: boolean;
 	onToggleEvents: () => void;
+	forkOpen: boolean;
+	onForkOpenChange: (open: boolean) => void;
+	inspectorOpen: boolean;
+	onToggleInspector: () => void;
 	onNextStep: () => void;
 	onPlay: () => void;
 	onPause: () => void;
@@ -60,15 +71,17 @@ export function ControlBar({
 
 	return (
 		<div className="flex h-11 shrink-0 items-center gap-3 border-b bg-card px-4">
-			<Button
-				variant={eventsOpen ? "secondary" : "ghost"}
-				size="icon-sm"
-				onClick={onToggleEvents}
-				aria-label={eventsOpen ? "Hide event viewer" : "Show event viewer"}
-				aria-pressed={eventsOpen}
-			>
-				<HugeiconsIcon icon={PanelLeftIcon} />
-			</Button>
+			<Hint label={eventsOpen ? "Hide event viewer" : "Show event viewer"}>
+				<Button
+					variant={eventsOpen ? "secondary" : "ghost"}
+					size="icon-sm"
+					onClick={onToggleEvents}
+					aria-label={eventsOpen ? "Hide event viewer" : "Show event viewer"}
+					aria-pressed={eventsOpen}
+				>
+					<HugeiconsIcon icon={PanelLeftIcon} />
+				</Button>
+			</Hint>
 			<span className="truncate font-medium text-sm">{run.name}</span>
 			<span className="font-mono text-muted-foreground text-xs">
 				#{run.seed}
@@ -86,15 +99,17 @@ export function ControlBar({
 					Step {step} / {run.scenario.steps}
 				</span>
 				<div className="flex items-center gap-1.5">
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						onClick={() => onCursor(step - 1)}
-						disabled={step <= 0}
-						aria-label="Previous step"
-					>
-						<HugeiconsIcon icon={ArrowLeft01Icon} />
-					</Button>
+					<Hint label="Previous step">
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							onClick={() => onCursor(step - 1)}
+							disabled={step <= 0}
+							aria-label="Previous step"
+						>
+							<HugeiconsIcon icon={ArrowLeft01Icon} />
+						</Button>
+					</Hint>
 					<Slider
 						className="data-horizontal:w-40"
 						min={0}
@@ -108,15 +123,17 @@ export function ControlBar({
 						}}
 						aria-label="Step cursor"
 					/>
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						onClick={() => onCursor(step + 1)}
-						disabled={step >= latestStep}
-						aria-label="Next played step"
-					>
-						<HugeiconsIcon icon={ArrowRight01Icon} />
-					</Button>
+					<Hint label="Next played step">
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							onClick={() => onCursor(step + 1)}
+							disabled={step >= latestStep}
+							aria-label="Next played step"
+						>
+							<HugeiconsIcon icon={ArrowRight01Icon} />
+						</Button>
+					</Hint>
 				</div>
 				{tray}
 				<div className="flex items-center gap-2">
@@ -154,9 +171,26 @@ export function ControlBar({
 				<ForkSheet
 					runId={run.runId}
 					step={step}
+					open={forkOpen}
+					onOpenChange={onForkOpenChange}
 					interventions={drafts}
 					interventionLabels={draftLabels}
 				/>
+				<Legend />
+				<Hint
+					label={inspectorOpen ? "Hide inspector" : "Show inspector"}
+					side="bottom"
+				>
+					<Button
+						variant={inspectorOpen ? "secondary" : "ghost"}
+						size="icon-sm"
+						onClick={onToggleInspector}
+						aria-label={inspectorOpen ? "Hide inspector" : "Show inspector"}
+						aria-pressed={inspectorOpen}
+					>
+						<HugeiconsIcon icon={PanelRightIcon} />
+					</Button>
+				</Hint>
 			</div>
 		</div>
 	);

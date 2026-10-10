@@ -24,17 +24,15 @@ cp .env.example .env   # set a valid ANTHROPIC_API_KEY
 docker compose up --build
 ```
 
-The ui is on http://localhost:3000 and the api on http://localhost:8080. Runs are stored in SQLite on the `data` volume, so they survive restarts and rebuilds.
+The ui is on http://localhost:3000 and the api on http://localhost:8080 (its reference is at `/reference`). The browser only talks to the ui: the ui forwards its `/api/*` calls to the api, so there is no CORS to configure. Runs are stored in SQLite on the `data` volume, so they survive restarts and rebuilds.
 
 | Variable | Where | Meaning |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | api, from `.env` | required, `sk-ant-...` |
 | `API_PUBLISHED_PORT`, `UI_PUBLISHED_PORT` | compose | host ports, default 8080 and 3000 |
-| `NEXT_PUBLIC_API_URL` | ui, **build time** | where the browser reaches the api (compose derives it from `API_PUBLISHED_PORT`) |
-| `API_URL` | ui, runtime | where the ui container reaches the api for server-side rendering (`http://api:8080` in compose) |
-| `API_TRUSTED_ORIGIN` | api | origins allowed by CORS (compose derives it from `UI_PUBLISHED_PORT`) |
+| `API_URL` | ui, runtime | where the ui reaches the api, for its `/api` proxy and for server-side rendering (`http://api:8080` in compose, `http://localhost:8080` by default) |
 
-`NEXT_PUBLIC_API_URL` is inlined into the ui when it is built, so a ui image only suits the address it was built for. To serve the app elsewhere, build with `--build-arg NEXT_PUBLIC_API_URL=https://your-api`.
+`API_URL` is read when the ui starts, so the same ui image can be pointed at any api without rebuilding it: `docker run -e API_URL=http://my-api:8080 experiments-ui`.
 
 Images are built from the repository root: `docker build -f apps/api/Dockerfile .` and `docker build -f apps/ui/Dockerfile .`, or both at once with `docker buildx bake -f docker-bake.hcl`.
 

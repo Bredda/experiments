@@ -72,16 +72,20 @@ function useForkTree(runId: string, open: boolean): State {
 export function ForkSheet({
 	runId,
 	step,
+	open,
+	onOpenChange,
 	interventions,
 	interventionLabels,
 }: {
 	runId: string;
 	step: number;
+	/** Controlled by the run page, which also opens it from a step of the chat. */
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
 	/** Prepared interventions: the fork records them and they take effect at `step + 1`. */
 	interventions: readonly Intervention[];
 	interventionLabels: string[];
 }) {
-	const [open, setOpen] = useState(false);
 	const state = useForkTree(runId, open);
 	const origin =
 		state.status === "ready"
@@ -89,7 +93,7 @@ export function ForkSheet({
 			: undefined;
 
 	return (
-		<Sheet open={open} onOpenChange={setOpen}>
+		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetTrigger render={<Button variant="outline" size="sm" />}>
 				<HugeiconsIcon icon={GitForkIcon} data-icon="inline-start" />
 				Fork

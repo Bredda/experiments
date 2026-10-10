@@ -418,6 +418,23 @@ export function agentSummary(
 	};
 }
 
+export type AgentOverview = {
+	agentId: string;
+	behavior: string;
+	memory: string | undefined;
+	model: string | undefined;
+};
+
+/** The agents of the scenario in a line each, for a list to pick one from. */
+export function agentsOverview(run: RunRecord): AgentOverview[] {
+	return run.scenario.agents.map((agent) => ({
+		agentId: agent.id,
+		behavior: agent.behavior,
+		memory: agent.memory,
+		model: agent.model,
+	}));
+}
+
 export type ObservationSummary = {
 	step: number;
 	time: string;
@@ -614,4 +631,36 @@ export function redactionCandidates(
 	}
 
 	return candidates.reverse();
+}
+
+export type MessageRedactionTarget = {
+	agentId: string;
+	/** Already removed from this agent's view by an earlier intervention. */
+	redacted: boolean;
+};
+
+/**
+ * The agents a message can be redacted from: the members of the room it was
+ * published in, the only ones that see it. The engine accepts any message for
+ * any agent of the run (`buildInterventionEvents`) and stays the one that
+ * rejects. Empty when `eventId` is not a message of `events`.
+ */
+export function messageRedactionTargets(
+	events: readonly AnyEvent[],
+	eventId: string,
+): MessageRedactionTarget[] {
+	const message = events.find((event) => event.id === eventId);
+	if (message?.type !== "message.published") return [];
+
+	return [...agentRooms(events)]
+		.filter(([, roomId]) => roomId === message.roomId)
+		.map(([agentId]) => ({
+			agentId,
+			redacted: events.some(
+				(event) =>
+					event.type === "intervention.memory_redacted" &&
+					event.agentId === agentId &&
+					event.targetEventId === eventId,
+			),
+		}));
 }

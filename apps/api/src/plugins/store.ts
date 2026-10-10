@@ -11,6 +11,7 @@ declare module "fastify" {
 
 export default fp(
 	async (app) => {
+		app.log.info({ dbPath: resolvedDbPath }, "Opening the run store");
 		const store = new RunStore(resolvedDbPath);
 		app.decorate("store", store);
 		app.addHook("onClose", async () => store.close());

@@ -3,16 +3,62 @@ import type { RunRecord } from "@experiments/types/run";
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { agentsOverview } from "@/lib/run-view";
 import { AgentPanel } from "./agent-panel";
 import { EventPanel } from "./event-panel";
 import type { InterveneControls } from "./intervene-panel";
 import type { RunSelection } from "./selection";
 
-function selectionTitle(selection: RunSelection) {
+function selectionTitle(selection: RunSelection | null) {
+	if (selection === null) return "Inspector";
 	return selection.type === "event" ? "Event" : `Agent · ${selection.id}`;
 }
 
-/** Right-hand panel: the detail of the current selection, with a close button. */
+/** What the panel shows before anything is selected: how to fill it, and the agents to start from. */
+function EmptyInspector({
+	run,
+	onSelect,
+}: {
+	run: RunRecord;
+	onSelect: (selection: RunSelection) => void;
+}) {
+	return (
+		<ScrollArea className="h-full">
+			<div className="space-y-4 p-4">
+				<p className="text-muted-foreground text-sm">
+					Select an event, a message or an agent to inspect it.
+				</p>
+				<div className="space-y-1">
+					<h3 className="font-medium text-muted-foreground text-xs">Agents</h3>
+					<ul className="space-y-0.5">
+						{agentsOverview(run).map((agent) => (
+							<li key={agent.agentId}>
+								<button
+									type="button"
+									onClick={() => onSelect({ type: "agent", id: agent.agentId })}
+									className="flex w-full flex-col gap-0.5 rounded-md px-3 py-2 text-left text-xs transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+								>
+									<span className="font-medium text-sm">{agent.agentId}</span>
+									<span className="text-muted-foreground">
+										{agent.behavior}
+										{agent.memory ? ` · memory ${agent.memory}` : ""}
+										{agent.model ? ` · ${agent.model}` : ""}
+									</span>
+								</button>
+							</li>
+						))}
+					</ul>
+				</div>
+			</div>
+		</ScrollArea>
+	);
+}
+
+/**
+ * Right-hand panel: the detail of the current selection, with a close button.
+ * Without a selection it says what to select and lists the agents.
+ */
 export function Inspector({
 	run,
 	selection,
@@ -23,7 +69,7 @@ export function Inspector({
 	intervene,
 }: {
 	run: RunRecord;
-	selection: RunSelection;
+	selection: RunSelection | null;
 	events: AnyEvent[];
 	/** The step the cursor shows. */
 	step: number;
@@ -32,7 +78,7 @@ export function Inspector({
 	intervene: InterveneControls;
 }) {
 	const event =
-		selection.type === "event"
+		selection?.type === "event"
 			? events.find((e) => e.id === selection.id)
 			: undefined;
 
@@ -64,7 +110,9 @@ export function Inspector({
 				</div>
 			)}
 			<div className="min-h-0 flex-1">
-				{selection.type === "agent" ? (
+				{selection === null ? (
+					<EmptyInspector run={run} onSelect={onSelect} />
+				) : selection.type === "agent" ? (
 					<AgentPanel
 						run={run}
 						events={events}

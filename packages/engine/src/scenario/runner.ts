@@ -7,12 +7,14 @@ import type {
 	ForkTree,
 	RunRecord,
 	RunStatus,
+	UpdateRunRequest,
 } from "@experiments/types/run";
 import type { ScenarioConfig } from "@experiments/types/scenario";
 import { SimulationClock } from "../clock";
 import {
 	RunBusyError,
 	RunCompletedError,
+	RunHasForksError,
 	RunNotFoundError,
 	StepNotFoundError,
 } from "../errors";
@@ -130,6 +132,48 @@ export function getForkTree(store: RunStore, runId: RunId): ForkTree {
 	}
 
 	return tree;
+}
+
+/**
+ * Renames a run, changes its notes or archives it. Nothing here touches the
+ * simulation: the events, the seed and the scenario's behavior stay as they
+ * are. A run may be updated while it executes a step.
+ */
+export function updateRun(
+	store: RunStore,
+	runId: RunId,
+	patch: UpdateRunRequest,
+): RunRecord {
+	const run = store.updateRun(runId, patch);
+
+	if (run === undefined) {
+		throw new RunNotFoundError(runId);
+	}
+
+	return run;
+}
+
+/**
+ * Deletes a run with its events. Refused while it executes a step, and while
+ * other runs were forked from it: a fork copies its parent's history, so its
+ * lineage would point at nothing. Archive such a run instead.
+ */
+export function deleteRun(store: RunStore, runId: RunId): void {
+	if (store.getRun(runId) === undefined) {
+		throw new RunNotFoundError(runId);
+	}
+
+	if (stepping.has(runId)) {
+		throw new RunBusyError(runId);
+	}
+
+	const forks = store.countForks(runId);
+
+	if (forks > 0) {
+		throw new RunHasForksError(runId, forks);
+	}
+
+	store.deleteRun(runId);
 }
 
 // One step at a time per run: LLM-backed steps are slow enough for a second

@@ -21,6 +21,19 @@ export class RunBusyError extends Error {
 	}
 }
 
+/** A run that others were forked from cannot be deleted: their history was copied from it. */
+export class RunHasForksError extends Error {
+	constructor(
+		readonly runId: RunId,
+		readonly forks: number,
+	) {
+		super(
+			`Run ${runId} has ${forks} ${forks === 1 ? "fork" : "forks"}: delete ${forks === 1 ? "it" : "them"} first, or archive the run instead`,
+		);
+		this.name = "RunHasForksError";
+	}
+}
+
 export class StepNotFoundError extends Error {
 	constructor(
 		readonly runId: RunId,

@@ -58,6 +58,14 @@ export function openRunTab(tab: RunTab) {
 	}
 }
 
+/** Updates the name of the tab of a run, if it is open. */
+export function renameRunTab(runId: string, name: string) {
+	const current = getSnapshot();
+	if (current.some((t) => t.runId === runId && t.name !== name)) {
+		update(current.map((t) => (t.runId === runId ? { ...t, name } : t)));
+	}
+}
+
 export function closeRunTab(runId: string) {
 	update(getSnapshot().filter((t) => t.runId !== runId));
 }

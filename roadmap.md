@@ -23,9 +23,11 @@ The MVP does not need sophisticated emergent behavior. It needs to prove that co
 - Complexity is added only when an experiment shows the current model is insufficient.
 - Anything that influences a run, including experimenter interventions, is recorded as an event so runs stay inspectable and replayable.
 
-## Axes
+## Direction
 
-Epics group the work by axis. Run lifecycle, inspection and replay, and agents and memory are done; the open ones are interventions, environment, scheduling and measurement and comparison (comparison of two runs is the current priority, since it closes the MVP loop). Environment must precede per-room scheduling, and interventions benefit from the fork already in place.
+Run lifecycle, inspection and replay, and agents and memory are done. The release in preparation, **1.3.0** (a GitHub milestone), takes the app from a local tool to a service: Postgres instead of SQLite, authentication through Keycloak (one realm per app), deployment on k3s, and configurable agents (persona library, mixed providers). Its epics and sub-issues are planned and Ready.
+
+After it, the committed directions are comparing runs (it closes the MVP loop), then interventions, environment and scheduling as the experiments need them; run metrics, server-side runs and scenario authoring are in the backlog. Environment must precede per-room scheduling, and interventions benefit from the fork already in place. Epics are the source of truth for scope and order.
 
 ## Out of scope for now
 

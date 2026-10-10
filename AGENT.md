@@ -111,6 +111,8 @@ Planning lives in GitHub, not in the repo: the [experiments project](https://git
 
 If the plan turns out wrong or an issue is too big, edit the issue or split it into more sub-issues before continuing; surface genuine design ambiguity in the issue rather than deciding silently. A decision that changes the simulation model or an invariant updates `AGENT.md`, `design.md` or `docs/agent/*` in the same pull request. `roadmap.md` keeps only the vision, principles and what is out of scope.
 
+Releases are planned with GitHub milestones (`1.3.0` is the current one): an epic and its sub-issues carry the milestone. Shared infrastructure of the k3s server (Keycloak, shared Postgres, TLS) is not in this repository but in the private repository `Bredda/platform`; the epics for authentication and k3s deployment depend on it for production, not for development or tests.
+
 The scripts and workflows write to the project with the `GH_PROJECT_PAT` secret (`GITHUB_TOKEN` cannot write to a user-owned project); locally `gh` needs the `project` scope.
 
 ## Commits, releases and CI
@@ -134,4 +136,5 @@ Vitest runs in `packages/engine` (`pnpm --filter @experiments/engine test`), `pa
 | Adding an event type | skill `add-event-type` |
 | Overall design | [design.md](design.md) |
 | Planned work, current task, backlog | the GitHub project and issues (see Planning and work tracking) |
-| Vision, principles, out of scope | [roadmap.md](roadmap.md) |
+| Vision, principles, direction | [roadmap.md](roadmap.md) |
+| Shared infrastructure (Keycloak, Postgres, TLS) | private repo `Bredda/platform`, `docs/app-contract.md` |
